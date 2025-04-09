@@ -1,10 +1,7 @@
-import * as mongoose from 'mongoose';
-import { HydratedDocument } from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import mongoose, { Document } from 'mongoose';
 
-import { Company } from 'src/companies/entities/company.entity';
-
-export type UserDocument = HydratedDocument<User>;
+export type UserDocument = User & Document;
 
 @Schema({ timestamps: true })
 export class User {
@@ -12,19 +9,31 @@ export class User {
   email: string;
 
   @Prop({ required: true })
-  password: string; // Store the hashed password
-
-  @Prop({ required: true })
-  firstName: string;
+  passwordHash: string;
 
   @Prop()
-  lastName?: string;
+  fullName: string;
 
-  @Prop({ default: [] })
-  roles: string[];
+  @Prop()
+  avatarUrl: string;
 
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Company' })
-  company: Company; // Companies this user belongs to
+  @Prop({ default: false })
+  isSystemAdmin: boolean;
+
+  @Prop({ enum: ['owner', 'admin', 'member'], default: 'member' })
+  role: string;
+
+  @Prop({ type: mongoose.Schema.Types.Mixed, default: {} })
+  permissions: {
+    canManageUsers: boolean;
+    canManageProjects: boolean;
+    canManageLocales: boolean;
+    canTranslate: boolean;
+    canApproveTranslations: boolean;
+  };
+
+  @Prop()
+  lastLoginAt?: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

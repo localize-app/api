@@ -21,7 +21,7 @@ export class LocalesService {
   async findAll(): Promise<Locale[]> {
     return this.localeModel
       .find()
-      .populate('platforms') // Populate related platforms
+      .populate('projects') // Populate related projects
       .exec();
   }
 
@@ -29,7 +29,7 @@ export class LocalesService {
   async findOne(id: string): Promise<Locale> {
     const locale = await this.localeModel
       .findById(id)
-      .populate('platforms') // Populate related platforms
+      .populate('projects') // Populate related projects
       .exec();
     if (!locale) {
       throw new NotFoundException(`Locale with ID ${id} not found`);
@@ -41,7 +41,7 @@ export class LocalesService {
   async update(id: string, updateLocaleDto: UpdateLocaleDto): Promise<Locale> {
     const updatedLocale = await this.localeModel
       .findByIdAndUpdate(id, updateLocaleDto, { new: true })
-      .populate('platforms') // Populate related platforms
+      .populate('projects') // Populate related projects
       .exec();
     if (!updatedLocale) {
       throw new NotFoundException(`Locale with ID ${id} not found`);

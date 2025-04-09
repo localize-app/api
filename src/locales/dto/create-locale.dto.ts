@@ -25,5 +25,5 @@ export class CreateLocaleDto {
 
   @IsArray()
   @IsMongoId({ each: true })
-  platforms: string[]; // Optional array of platform IDs
+  projects: string[]; // Optional array of project IDs
 }

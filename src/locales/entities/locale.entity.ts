@@ -1,7 +1,7 @@
 import * as mongoose from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 
-import { Platform } from 'src/platforms/entities/platform.entity';
+import { Project } from 'src/projects/entities/project.entity';
 
 export type LocaleDocument = mongoose.HydratedDocument<Locale>;
 
@@ -29,9 +29,9 @@ export class Locale {
   isActive: boolean;
 
   @Prop({
-    type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Platform' }],
+    type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Project' }],
   })
-  platforms?: Platform[]; // Optional: Platforms that support this locale
+  projects?: Project[]; // Optional: Projects that support this locale
 }
 
 export const LocaleSchema = SchemaFactory.createForClass(Locale);

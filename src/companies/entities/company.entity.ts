@@ -2,7 +2,7 @@ import * as mongoose from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 
 import { User } from 'src/users/entities/user.entity';
-import { Platform } from 'src/platforms/entities/platform.entity';
+import { Project } from 'src/projects/entities/project.entity';
 
 export type CompanyDocument = mongoose.HydratedDocument<Company>;
 
@@ -23,9 +23,9 @@ export class Company {
   description?: string;
 
   @Prop({
-    type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Platform' }],
+    type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Project' }],
   })
-  platforms: Platform[]; // Reference to Platform entities
+  projects: Project[]; // Reference to Project entities
 
   @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }] })
   users: User[];

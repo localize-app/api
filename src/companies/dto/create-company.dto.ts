@@ -18,7 +18,7 @@ export class CreateCompanyDto {
   @IsArray()
   @IsMongoId({ each: true })
   @IsOptional()
-  platforms?: string[]; // Optional array of platform IDs
+  projects?: string[]; // Optional array of project IDs
 
   @IsArray()
   @IsMongoId({ each: true })

@@ -21,7 +21,7 @@ export class CompaniesService {
   async findAll(): Promise<Company[]> {
     return this.companyModel
       .find()
-      .populate('platforms') // Populate platforms
+      .populate('projects') // Populate projects
       .populate('users') // Populate users
       .exec();
   }
@@ -30,7 +30,7 @@ export class CompaniesService {
   async findOne(id: string): Promise<Company> {
     const company = await this.companyModel
       .findById(id)
-      .populate('platforms') // Populate platforms
+      .populate('projects') // Populate projects
       .populate('users') // Populate users
       .exec();
     if (!company) {
@@ -46,7 +46,7 @@ export class CompaniesService {
   ): Promise<Company> {
     const updatedCompany = await this.companyModel
       .findByIdAndUpdate(id, updateCompanyDto, { new: true })
-      .populate('platforms') // Populate platforms
+      .populate('projects') // Populate projects
       .populate('users') // Populate users
       .exec();
     if (!updatedCompany) {
