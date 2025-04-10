@@ -154,6 +154,30 @@ export class GlossaryTermsService {
       .exec();
   }
 
+  async removeTranslation(
+    id: string,
+    locale: string,
+  ): Promise<GlossaryTerm | null> {
+    const term = await this.findOne(id);
+
+    if (term.translations && term.translations[locale]) {
+      delete term.translations[locale];
+
+      return this.glossaryTermModel
+        .findByIdAndUpdate(
+          id,
+          { translations: term.translations },
+          { new: true },
+        )
+        .populate('company')
+        .populate('projects')
+        .populate('createdBy')
+        .exec();
+    }
+
+    return term;
+  }
+
   async syncWithGoogle(
     companyId: string,
     locale: string,
