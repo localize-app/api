@@ -1,6 +1,7 @@
 import * as mongoose from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
+
 import { Company } from 'src/companies/entities/company.entity';
 import { User } from 'src/users/entities/user.entity';
 import { Project } from 'src/projects/entities/project.entity';
@@ -23,7 +24,10 @@ export class GlossaryTerm {
   @Prop()
   description?: string;
 
-  @Prop({ type: mongoose.Schema.Types.Mixed, default: {} })
+  @Prop({
+    type: mongoose.Schema.Types.Mixed,
+    default: {},
+  })
   translations: Record<string, string>; // locale code -> translated term
 
   @Prop({
@@ -33,10 +37,15 @@ export class GlossaryTerm {
   })
   company: Company;
 
-  @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Project' }] })
+  @Prop({
+    type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Project' }],
+  })
   projects?: Project[]; // Optional: specific projects this term applies to
 
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User' })
+  @Prop({
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  })
   createdBy: User;
 
   @Prop({ default: false })

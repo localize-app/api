@@ -136,7 +136,7 @@ export class GlossaryTermsService {
     id: string,
     locale: string,
     addTranslationDto: AddTranslationDto,
-  ): Promise<GlossaryTerm> {
+  ): Promise<GlossaryTerm | null> {
     const term = await this.findOne(id);
 
     if (!term.translations) {
@@ -153,7 +153,10 @@ export class GlossaryTermsService {
       .exec();
   }
 
-  async removeTranslation(id: string, locale: string): Promise<GlossaryTerm> {
+  async removeTranslation(
+    id: string,
+    locale: string,
+  ): Promise<GlossaryTerm | null> {
     const term = await this.findOne(id);
 
     if (term.translations && term.translations[locale]) {

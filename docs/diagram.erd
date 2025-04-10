@@ -1,0 +1,90 @@
+erDiagram
+COMPANY ||--o{ USER : has
+COMPANY ||--o{ PROJECT : owns
+PROJECT ||--o{ PHRASE : contains
+PROJECT }|--o{ LOCALE : supports
+PROJECT ||--o{ WEBHOOK : configures
+PROJECT ||--o{ INTEGRATION : enables
+PROJECT ||--|| STYLE_GUIDE : defines
+USER }o--o{ PROJECT : member_of
+USER ||--o{ ACTIVITY : performs
+COMPANY ||--o{ GLOSSARY_TERM : maintains
+PROJECT }o--o{ GLOSSARY_TERM : uses
+USER ||--o{ GLOSSARY_TERM : creates
+
+    COMPANY {
+        string _id
+        string name
+        string description
+    }
+
+    USER {
+        string _id
+        string email
+        string passwordHash
+        string firstName
+        string lastName
+        string role
+    }
+
+    PROJECT {
+        string _id
+        string name
+        string description
+        string projectType
+        string websiteUrl
+        string projectKey
+        boolean isArchived
+    }
+
+    PHRASE {
+        string _id
+        string key
+        string sourceText
+        string context
+        string status
+        boolean isArchived
+    }
+
+    LOCALE {
+        string _id
+        string code
+        string language
+        boolean isActive
+    }
+
+    ACTIVITY {
+        string _id
+        string actionType
+        string entityType
+        date timestamp
+    }
+
+    GLOSSARY_TERM {
+        string _id
+        string term
+        string description
+        boolean isGlobal
+        boolean isActive
+    }
+
+    WEBHOOK {
+        string _id
+        string name
+        string url
+        boolean isActive
+    }
+
+    INTEGRATION {
+        string _id
+        string type
+        string name
+        boolean isEnabled
+    }
+
+    STYLE_GUIDE {
+        string _id
+        string businessDescription
+        string audienceDescription
+        string tone
+    }

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -23,7 +24,15 @@ export class ProjectsService {
     return newProject.save();
   }
 
-  async findAll(query: any = {}): Promise<Project[]> {
+  async findAll(
+    query: {
+      company?: string;
+      isArchived?: string;
+      search?: string;
+      page?: number;
+      limit?: number;
+    } = {},
+  ): Promise<Project[]> {
     const { company, isArchived, search, page = 1, limit = 100 } = query;
 
     // Build filter
@@ -94,7 +103,7 @@ export class ProjectsService {
     }
   }
 
-  async addMember(id: string, userId: string): Promise<Project> {
+  async addMember(id: string, userId: string): Promise<Project | null> {
     const project = await this.findOne(id);
 
     if (!project.members) {
@@ -102,6 +111,7 @@ export class ProjectsService {
     }
 
     // Check if user is already a member
+    // @ts-ignore
     const isMember = project.members.some((member) => member.id === userId);
 
     if (!isMember) {
@@ -115,7 +125,7 @@ export class ProjectsService {
     return project;
   }
 
-  async removeMember(id: string, userId: string): Promise<Project> {
+  async removeMember(id: string, userId: string): Promise<Project | null> {
     return this.projectModel
       .findByIdAndUpdate(id, { $pull: { members: userId } }, { new: true })
       .populate('company')
@@ -123,12 +133,18 @@ export class ProjectsService {
       .exec();
   }
 
-  async updateSettings(id: string, settings: any): Promise<Project> {
-    return this.projectModel
+  async updateSettings(id: string, settings: any): Promise<Project | null> {
+    const updatedProject = await this.projectModel
       .findByIdAndUpdate(id, { settings }, { new: true })
       .populate('company')
       .populate('members')
       .exec();
+
+    if (!updatedProject) {
+      throw new NotFoundException(`Project with ID ${id} not found`);
+    }
+
+    return updatedProject;
   }
 
   private generateProjectKey(): string {

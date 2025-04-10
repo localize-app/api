@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -106,7 +107,7 @@ export class PhrasesService {
     id: string,
     locale: string,
     translationDto: AddTranslationDto,
-  ): Promise<Phrase> {
+  ): Promise<Phrase | null> {
     const phrase = await this.findOne(id);
 
     if (!phrase.translations) {
@@ -117,6 +118,7 @@ export class PhrasesService {
     phrase.translations[locale] = {
       ...translationDto,
       lastModified: new Date(),
+      // @ts-ignore
       modifiedBy: null, // This should be set to the current user ID
     };
 

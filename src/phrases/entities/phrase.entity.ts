@@ -11,7 +11,7 @@ export type TranslationStatus =
   | 'rejected'
   | 'needs_review';
 
-export interface Translation {
+export class Translation {
   text: string;
   status: TranslationStatus;
   isHuman: boolean;
@@ -50,7 +50,10 @@ export class Phrase {
   @Prop({ default: false })
   isArchived: boolean;
 
-  @Prop({ type: mongoose.Schema.Types.Mixed })
+  @Prop({
+    type: mongoose.Schema.Types.Mixed,
+    default: {},
+  })
   translations: Record<string, Translation>;
 
   @Prop({ type: [String], default: [] })

@@ -28,7 +28,10 @@ export class PhrasesController {
   }
 
   @Get()
-  async findAll(@Res({ passthrough: true }) res: Response, @Query() query) {
+  async findAll(
+    @Res({ passthrough: true }) res: Response,
+    @Query() query: any,
+  ) {
     try {
       const list = await this.phrasesService.findAll(query);
       res

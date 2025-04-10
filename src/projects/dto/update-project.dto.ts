@@ -1,4 +1,3 @@
-// src/projects/dto/update-project.dto.ts
 import {
   IsOptional,
   IsString,
