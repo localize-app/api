@@ -143,7 +143,8 @@ export class GlossaryTermsService {
       term.translations = {};
     }
 
-    term.translations[locale] = addTranslationDto.translation;
+    // Update to use text instead of translation
+    term.translations[locale] = addTranslationDto.text;
 
     return this.glossaryTermModel
       .findByIdAndUpdate(id, { translations: term.translations }, { new: true })
@@ -151,30 +152,6 @@ export class GlossaryTermsService {
       .populate('projects')
       .populate('createdBy')
       .exec();
-  }
-
-  async removeTranslation(
-    id: string,
-    locale: string,
-  ): Promise<GlossaryTerm | null> {
-    const term = await this.findOne(id);
-
-    if (term.translations && term.translations[locale]) {
-      delete term.translations[locale];
-
-      return this.glossaryTermModel
-        .findByIdAndUpdate(
-          id,
-          { translations: term.translations },
-          { new: true },
-        )
-        .populate('company')
-        .populate('projects')
-        .populate('createdBy')
-        .exec();
-    }
-
-    return term;
   }
 
   async syncWithGoogle(

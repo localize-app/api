@@ -17,6 +17,13 @@ async function bootstrap() {
     .setTitle('Localize API')
     .setDescription('API documentation for Localize platform')
     .setVersion('1.0')
+    .addTag('Companies')
+    .addTag('Projects')
+    .addTag('Users')
+    .addTag('Phrases')
+    .addTag('Locales')
+    .addTag('GlossaryTerms')
+    .addTag('Activities')
     .addBearerAuth()
     .build();
 

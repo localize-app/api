@@ -14,9 +14,9 @@ import { Response } from 'express';
 import { PhrasesService } from './phrases.service';
 import { CreatePhraseDto } from './dto/create-phrase.dto';
 import { UpdatePhraseDto } from './dto/update-phrase.dto';
-import { AddTranslationDto } from './dto/add-translation.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
 import { BatchOperationDto } from './dto/batch-operation.dto';
+import { AddTranslationDto } from 'src/glossary-terms/dto/add-translation.dto';
 
 @Controller('phrases')
 export class PhrasesController {

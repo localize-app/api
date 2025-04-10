@@ -6,9 +6,9 @@ import { Model } from 'mongoose';
 import { Phrase, PhraseDocument } from './entities/phrase.entity';
 import { CreatePhraseDto } from './dto/create-phrase.dto';
 import { UpdatePhraseDto } from './dto/update-phrase.dto';
-import { AddTranslationDto } from './dto/add-translation.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
 import { BatchOperationDto } from './dto/batch-operation.dto';
+import { AddTranslationDto } from 'src/glossary-terms/dto/add-translation.dto';
 
 @Injectable()
 export class PhrasesService {
