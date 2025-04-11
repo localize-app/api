@@ -1,3 +1,4 @@
+// src/users/users.module.ts
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 
@@ -11,5 +12,6 @@ import { UsersController } from './users.controller';
   ],
   controllers: [UsersController],
   providers: [UsersService],
+  exports: [UsersService], // This exports UsersService, making it available to other modules
 })
 export class UsersModule {}

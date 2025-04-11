@@ -1,3 +1,4 @@
+// src/users/users.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -12,8 +13,18 @@ export class UsersService {
 
   // Create a new user
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const newUser = new this.userModel(createUserDto);
-    return newUser.save();
+    // If the request has a password, store it as passwordHash
+    if ('password' in createUserDto) {
+      const { password, ...userData } = createUserDto;
+      const newUser = new this.userModel({
+        ...userData,
+        passwordHash: password, // This should be pre-hashed when coming from auth service
+      });
+      return newUser.save();
+    } else {
+      const newUser = new this.userModel(createUserDto);
+      return newUser.save();
+    }
   }
 
   // Get all users
@@ -36,6 +47,15 @@ export class UsersService {
     return user;
   }
 
+  // Find user by email
+  async findByEmail(email: string): Promise<User> {
+    const user = await this.userModel.findOne({ email }).exec();
+    if (!user) {
+      throw new NotFoundException(`User with email ${email} not found`);
+    }
+    return user;
+  }
+
   // Update a user
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
     const updatedUser = await this.userModel
@@ -54,5 +74,12 @@ export class UsersService {
     if (!result) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
+  }
+
+  // Update the last login timestamp
+  async updateLastLogin(id: string): Promise<User | null> {
+    return this.userModel
+      .findByIdAndUpdate(id, { lastLoginAt: new Date() }, { new: true })
+      .exec();
   }
 }

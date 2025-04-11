@@ -1,5 +1,11 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { MongooseModule } from '@nestjs/mongoose';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+
+import { AuthModule } from './auth/auth.module';
+import { AppConfigModule } from './config/config.module';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
 import { CompaniesModule } from './companies/companies.module';
 import { ProjectsModule } from './projects/projects.module';
@@ -13,7 +19,20 @@ import { GlossaryTermsModule } from './glossary-terms/glossary-terms.module';
 
 @Module({
   imports: [
-    MongooseModule.forRoot('mongodb://localhost/nest'),
+    // Config module should be first to ensure environment variables are loaded
+    AppConfigModule,
+
+    // Use configuration service to get the MongoDB URI
+    MongooseModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        uri: configService.get<string>('MONGODB_URI'),
+      }),
+      inject: [ConfigService],
+    }),
+
+    AuthModule,
+    // Feature modules
     CompaniesModule,
     ProjectsModule,
     UsersModule,
@@ -25,6 +44,12 @@ import { GlossaryTermsModule } from './glossary-terms/glossary-terms.module';
     GlossaryTermsModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    // Global JWT Authentication - applied to all routes except those marked with @Public()
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+  ],
 })
 export class AppModule {}
