@@ -44,7 +44,7 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
-    return user;
+    return user.toObject();
   }
 
   // Find user by email
@@ -53,7 +53,7 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException(`User with email ${email} not found`);
     }
-    return user;
+    return user.toObject();
   }
 
   // Update a user

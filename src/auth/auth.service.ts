@@ -34,7 +34,12 @@ export class AuthService {
   }
 
   async login(user: any) {
-    const payload = { email: user.email, sub: user._id, role: user.role };
+    const payload = {
+      email: user.email,
+      sub: user._id,
+      role: user.role,
+    };
+
     await this.usersService.updateLastLogin(user._id);
 
     return {

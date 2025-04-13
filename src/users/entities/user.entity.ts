@@ -1,6 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { Document } from 'mongoose';
 
+import { Company } from 'src/companies/entities/company.entity';
+
 export type UserDocument = User & Document;
 
 @Schema({ timestamps: true })
@@ -34,6 +36,9 @@ export class User {
 
   @Prop()
   lastLoginAt?: Date;
+
+  @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Company' }] })
+  companies: Company[]; // Add this to create the association
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
