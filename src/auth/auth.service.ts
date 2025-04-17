@@ -46,6 +46,8 @@ export class AuthService {
       user: {
         _id: user._id,
         email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
         fullName: user.fullName,
         role: user.role,
         isSystemAdmin: user.isSystemAdmin,
@@ -56,15 +58,13 @@ export class AuthService {
   }
 
   async register(registerDto: RegisterDto) {
-    const hash = await bcrypt.hash(registerDto.password, 10);
-
-    // Create a valid CreateUserDto object
+    // Password will be hashed in the UsersService.create method
     const userDto: CreateUserDto = {
       email: registerDto.email,
-      password: hash,
-      firstName: registerDto.firstName, // Changed from fullName
-      lastName: registerDto.lastName, // Added lastName
-      roles: [Role.MEMBER],
+      password: registerDto.password, // Send plain password - UsersService will hash it
+      firstName: registerDto.firstName,
+      lastName: registerDto.lastName,
+      role: Role.MEMBER,
     };
 
     const newUser = await this.usersService.create(userDto);

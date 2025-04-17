@@ -1,20 +1,14 @@
 import * as mongoose from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { HydratedDocument } from 'mongoose';
 
 import { Project } from 'src/projects/entities/project.entity';
+import { BaseEntity, baseSchemaOptions } from 'src/common/entities/base.entity';
 
-export type LocaleDocument = mongoose.HydratedDocument<Locale>;
+export type LocaleDocument = HydratedDocument<Locale>;
 
-@Schema({
-  timestamps: true,
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true },
-})
-export class Locale {
-  _id: string;
-
-  id!: string;
-
+@Schema(baseSchemaOptions)
+export class Locale extends BaseEntity {
   @Prop({ required: true, unique: true })
   code: string; // e.g., 'en-US'
 

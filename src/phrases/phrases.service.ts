@@ -9,6 +9,7 @@ import { UpdatePhraseDto } from './dto/update-phrase.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
 import { BatchOperationDto } from './dto/batch-operation.dto';
 import { AddTranslationDto } from 'src/glossary-terms/dto/add-translation.dto';
+import { Translation, TranslationStatus } from './entities/translation.entity';
 
 @Injectable()
 export class PhrasesService {
@@ -110,17 +111,25 @@ export class PhrasesService {
   ): Promise<Phrase | null> {
     const phrase = await this.findOne(id);
 
+    // Create or update the translation for the specified locale
+    // Initialize the translations Map if it doesn't exist
     if (!phrase.translations) {
-      phrase.translations = {};
+      phrase.translations = new Map<string, Translation>();
     }
 
-    // Create or update the translation for the specified locale
-    phrase.translations[locale] = {
-      ...translationDto,
+    // Create the translation object
+    // @ts-ignore
+    const translation: Translation = {
+      text: translationDto.text,
+      status: translationDto.status || TranslationStatus.PENDING,
+      isHuman:
+        translationDto.isHuman !== undefined ? translationDto.isHuman : true,
       lastModified: new Date(),
-      // @ts-ignore
-      modifiedBy: null, // This should be set to the current user ID
+      modifiedBy: undefined, // This should be set to the current user ID
     };
+
+    // Use set() method to add/update the translation in the Map
+    phrase.translations.set(locale, translation);
 
     return this.phraseModel
       .findByIdAndUpdate(

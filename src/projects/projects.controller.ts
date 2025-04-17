@@ -10,6 +10,9 @@ import {
   Query,
   Res,
   HttpStatus,
+  HttpException,
+  InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { ProjectsService } from './projects.service';
@@ -18,11 +21,24 @@ import { UpdateProjectDto } from './dto/update-project.dto';
 
 @Controller('projects')
 export class ProjectsController {
+  private readonly logger = new Logger(ProjectsController.name);
+
   constructor(private readonly projectsService: ProjectsService) {}
 
   @Post()
-  create(@Body() createProjectDto: CreateProjectDto) {
-    return this.projectsService.create(createProjectDto);
+  async create(@Body() createProjectDto: CreateProjectDto) {
+    try {
+      return await this.projectsService.create(createProjectDto);
+    } catch (error) {
+      this.logger.error(
+        `Failed to create project: ${error.message}`,
+        error.stack,
+      );
+      throw new HttpException(
+        `Failed to create project: ${error.message}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
   }
 
   @Get()
@@ -36,38 +52,113 @@ export class ProjectsController {
         .status(HttpStatus.OK)
         .header('Content-Range', `projects 0-${list?.length}/${list?.length}`);
       return list;
-    } catch (e) {
-      console.log(e);
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch projects: ${error.message}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        `Failed to fetch projects: ${error.message}`,
+      );
     }
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.projectsService.findOne(id);
+  async findOne(@Param('id') id: string) {
+    try {
+      return await this.projectsService.findOne(id);
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch project with ID ${id}: ${error.message}`,
+        error.stack,
+      );
+      throw new HttpException(
+        `Failed to fetch project with ID ${id}: ${error.message}`,
+        error.status || HttpStatus.NOT_FOUND,
+      );
+    }
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateProjectDto: UpdateProjectDto) {
-    return this.projectsService.update(id, updateProjectDto);
+  async update(
+    @Param('id') id: string,
+    @Body() updateProjectDto: UpdateProjectDto,
+  ) {
+    try {
+      return await this.projectsService.update(id, updateProjectDto);
+    } catch (error) {
+      this.logger.error(
+        `Failed to update project with ID ${id}: ${error.message}`,
+        error.stack,
+      );
+      throw new HttpException(
+        `Failed to update project with ID ${id}: ${error.message}`,
+        error.status || HttpStatus.BAD_REQUEST,
+      );
+    }
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.projectsService.remove(id);
+  async remove(@Param('id') id: string) {
+    try {
+      return await this.projectsService.remove(id);
+    } catch (error) {
+      this.logger.error(
+        `Failed to delete project with ID ${id}: ${error.message}`,
+        error.stack,
+      );
+      throw new HttpException(
+        `Failed to delete project with ID ${id}: ${error.message}`,
+        error.status || HttpStatus.NOT_FOUND,
+      );
+    }
   }
 
   @Post(':id/members/:userId')
-  addMember(@Param('id') id: string, @Param('userId') userId: string) {
-    return this.projectsService.addMember(id, userId);
+  async addMember(@Param('id') id: string, @Param('userId') userId: string) {
+    try {
+      return await this.projectsService.addMember(id, userId);
+    } catch (error) {
+      this.logger.error(
+        `Failed to add member ${userId} to project ${id}: ${error.message}`,
+        error.stack,
+      );
+      throw new HttpException(
+        `Failed to add member to project: ${error.message}`,
+        error.status || HttpStatus.BAD_REQUEST,
+      );
+    }
   }
 
   @Delete(':id/members/:userId')
-  removeMember(@Param('id') id: string, @Param('userId') userId: string) {
-    return this.projectsService.removeMember(id, userId);
+  async removeMember(@Param('id') id: string, @Param('userId') userId: string) {
+    try {
+      return await this.projectsService.removeMember(id, userId);
+    } catch (error) {
+      this.logger.error(
+        `Failed to remove member ${userId} from project ${id}: ${error.message}`,
+        error.stack,
+      );
+      throw new HttpException(
+        `Failed to remove member from project: ${error.message}`,
+        error.status || HttpStatus.BAD_REQUEST,
+      );
+    }
   }
 
   @Patch(':id/settings')
-  updateSettings(@Param('id') id: string, @Body() settings: any) {
-    return this.projectsService.updateSettings(id, settings);
+  async updateSettings(@Param('id') id: string, @Body() settings: any) {
+    try {
+      return await this.projectsService.updateSettings(id, settings);
+    } catch (error) {
+      this.logger.error(
+        `Failed to update settings for project ${id}: ${error.message}`,
+        error.stack,
+      );
+      throw new HttpException(
+        `Failed to update project settings: ${error.message}`,
+        error.status || HttpStatus.BAD_REQUEST,
+      );
+    }
   }
 }

@@ -4,49 +4,97 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
-  IsArray,
+  IsEnum,
+  IsBoolean,
   IsMongoId,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+import { Role } from 'src/common/enums/role.enum';
+
+class UserPermissionsDto {
+  @ApiProperty({ description: 'Can manage users', default: false })
+  @IsBoolean()
+  @IsOptional()
+  canManageUsers?: boolean = false;
+
+  @ApiProperty({ description: 'Can manage projects', default: false })
+  @IsBoolean()
+  @IsOptional()
+  canManageProjects?: boolean = false;
+
+  @ApiProperty({ description: 'Can manage locales', default: false })
+  @IsBoolean()
+  @IsOptional()
+  canManageLocales?: boolean = false;
+
+  @ApiProperty({ description: 'Can translate content', default: false })
+  @IsBoolean()
+  @IsOptional()
+  canTranslate?: boolean = false;
+
+  @ApiProperty({ description: 'Can approve translations', default: false })
+  @IsBoolean()
+  @IsOptional()
+  canApproveTranslations?: boolean = false;
+}
 
 export class CreateUserDto {
   @ApiProperty({ description: 'User email address' })
   @IsEmail()
   @IsNotEmpty()
-  email: string; // User's email
+  email: string;
 
   @ApiProperty({ description: 'User password (will be hashed)' })
   @IsString()
   @IsNotEmpty()
-  password: string; // Hashed password
+  password: string;
 
   @ApiProperty({ description: "User's first name" })
   @IsString()
   @IsNotEmpty()
-  firstName: string; // User's first name
+  firstName: string;
 
   @ApiProperty({ description: "User's last name", required: false })
   @IsString()
   @IsOptional()
-  lastName?: string; // Optional last name
+  lastName?: string;
 
   @ApiProperty({
-    description: 'Array of user roles',
-    type: [String],
-    example: ['admin', 'translator'],
+    description: 'User role',
+    enum: Object.values(Role),
+    default: Role.MEMBER,
     required: false,
   })
-  @IsArray()
-  @IsString({ each: true })
+  @IsEnum(Role)
   @IsOptional()
-  roles?: string[]; // Array of roles (optional)
+  role?: string = Role.MEMBER;
+
+  @ApiProperty({
+    description: 'Is user a system administrator',
+    default: false,
+    required: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  isSystemAdmin?: boolean = false;
+
+  @ApiProperty({
+    description: 'User permissions',
+    type: UserPermissionsDto,
+    required: false,
+  })
+  @ValidateNested()
+  @Type(() => UserPermissionsDto)
+  @IsOptional()
+  permissions?: UserPermissionsDto;
 
   @ApiProperty({
     description: 'ID of the company the user belongs to',
-    type: [String],
     format: 'ObjectId',
     required: false,
   })
   @IsMongoId({ each: true })
   @IsOptional()
-  company?: string; // Optional array of company IDs
+  company?: string[];
 }

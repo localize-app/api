@@ -4,34 +4,24 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 
 import { User } from 'src/users/entities/user.entity';
 import { Company } from 'src/companies/entities/company.entity';
-
-export class ProjectSettings {
-  translationQA: boolean;
-  monthlyReport: boolean;
-  autoDetectLanguage: boolean;
-  archiveUnusedPhrases: boolean;
-  translateMetaTags: boolean;
-  translateAriaLabels: boolean;
-  translatePageTitles: boolean;
-  customizeImages: boolean;
-  customizeUrls: boolean;
-  customizeAudio: boolean;
-  dateHandling: boolean;
-  ignoreCurrency: boolean;
-}
+import { BaseEntity, baseSchemaOptions } from 'src/common/entities/base.entity';
+import {
+  ProjectSettings,
+  ProjectSettingsSchema,
+} from './project-settings.entity';
 
 export type ProjectDocument = HydratedDocument<Project>;
 
-@Schema({
-  timestamps: true,
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true },
-})
-export class Project {
-  _id: string;
+export enum ProjectType {
+  WEBSITE = 'website',
+  WEBAPP = 'webapp',
+  MOBILE_APP = 'mobile_app',
+  DESKTOP_APP = 'desktop_app',
+  OTHER = 'other',
+}
 
-  id!: string;
-
+@Schema(baseSchemaOptions)
+export class Project extends BaseEntity {
   @Prop({ required: true })
   name: string;
 
@@ -46,8 +36,9 @@ export class Project {
   company: Company;
 
   @Prop({
-    enum: ['website', 'webapp', 'mobile_app', 'desktop_app', 'other'],
-    default: 'website',
+    enum: Object.values(ProjectType),
+    default: ProjectType.WEBSITE,
+    type: String,
   })
   projectType: string;
 
@@ -66,23 +57,7 @@ export class Project {
   @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }] })
   members: User[]; // Team members with access to this project
 
-  @Prop({
-    type: mongoose.Schema.Types.Mixed,
-    default: {
-      translationQA: true,
-      monthlyReport: true,
-      autoDetectLanguage: true,
-      archiveUnusedPhrases: false,
-      translateMetaTags: true,
-      translateAriaLabels: true,
-      translatePageTitles: true,
-      customizeImages: false,
-      customizeUrls: false,
-      customizeAudio: false,
-      dateHandling: true,
-      ignoreCurrency: false,
-    },
-  })
+  @Prop({ type: ProjectSettingsSchema, default: () => ({}) })
   settings: ProjectSettings;
 }
 

@@ -1,44 +1,52 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import mongoose, { Document } from 'mongoose';
+import mongoose, { HydratedDocument } from 'mongoose';
 
+import { Role } from 'src/common/enums/role.enum';
 import { Company } from 'src/companies/entities/company.entity';
+import { BaseEntity, baseSchemaOptions } from 'src/common/entities/base.entity';
 
-export type UserDocument = User & Document;
+export type UserDocument = HydratedDocument<User>;
 
-@Schema({ timestamps: true })
-export class User {
+@Schema(baseSchemaOptions)
+export class User extends BaseEntity {
   @Prop({ required: true, unique: true })
   email: string;
 
   @Prop({ required: true })
   passwordHash: string;
 
-  @Prop()
-  fullName: string;
+  @Prop({ required: true })
+  firstName: string;
 
   @Prop()
-  avatarUrl: string;
+  lastName?: string;
+
+  @Prop()
+  avatarUrl?: string;
 
   @Prop({ default: false })
   isSystemAdmin: boolean;
 
-  @Prop({ enum: ['owner', 'admin', 'member'], default: 'member' })
+  @Prop({
+    enum: Object.values(Role),
+    default: Role.MEMBER,
+    type: String,
+  })
   role: string;
 
-  @Prop({ type: mongoose.Schema.Types.Mixed, default: {} })
-  permissions: {
-    canManageUsers: boolean;
-    canManageProjects: boolean;
-    canManageLocales: boolean;
-    canTranslate: boolean;
-    canApproveTranslations: boolean;
-  };
-
-  @Prop()
+  @Prop({ type: Date })
   lastLoginAt?: Date;
 
   @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Company' }] })
-  companies: Company[]; // Add this to create the association
+  companies: Company[];
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+
+// Add virtual getter for fullName
+UserSchema.virtual('fullName').get(function () {
+  if (this.firstName && this.lastName) {
+    return `${this.firstName} ${this.lastName}`;
+  }
+  return this.firstName;
+});

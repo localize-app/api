@@ -1,21 +1,15 @@
 import * as mongoose from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { HydratedDocument } from 'mongoose';
 
 import { User } from 'src/users/entities/user.entity';
 import { Project } from 'src/projects/entities/project.entity';
+import { BaseEntity, baseSchemaOptions } from 'src/common/entities/base.entity';
 
-export type CompanyDocument = mongoose.HydratedDocument<Company>;
+export type CompanyDocument = HydratedDocument<Company>;
 
-@Schema({
-  timestamps: true,
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true },
-})
-export class Company {
-  _id: string;
-
-  id!: string;
-
+@Schema(baseSchemaOptions)
+export class Company extends BaseEntity {
   @Prop({ required: true, unique: true })
   name: string;
 
