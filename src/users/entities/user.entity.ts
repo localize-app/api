@@ -4,6 +4,7 @@ import mongoose, { HydratedDocument } from 'mongoose';
 import { Role } from 'src/common/enums/role.enum';
 import { Company } from 'src/companies/entities/company.entity';
 import { BaseEntity, baseSchemaOptions } from 'src/common/entities/base.entity';
+import { RolePermissionsService } from 'src/auth/role-permission.service';
 
 export type UserDocument = HydratedDocument<User>;
 
@@ -49,4 +50,11 @@ UserSchema.virtual('fullName').get(function () {
     return `${this.firstName} ${this.lastName}`;
   }
   return this.firstName;
+});
+
+// Add virtual getter for permissions based on role
+UserSchema.virtual('permissions').get(function () {
+  // This will need to be injected properly in a real implementation
+  const rolePermissionsService = new RolePermissionsService();
+  return rolePermissionsService.getPermissionsForRole(this.role);
 });

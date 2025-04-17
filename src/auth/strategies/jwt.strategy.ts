@@ -24,8 +24,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
+
     // Remove sensitive information
     const { passwordHash, ...result } = user;
+
     return result;
   }
 }

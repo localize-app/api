@@ -7,37 +7,8 @@ import {
   IsEnum,
   IsBoolean,
   IsMongoId,
-  ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 import { Role } from 'src/common/enums/role.enum';
-
-class UserPermissionsDto {
-  @ApiProperty({ description: 'Can manage users', default: false })
-  @IsBoolean()
-  @IsOptional()
-  canManageUsers?: boolean = false;
-
-  @ApiProperty({ description: 'Can manage projects', default: false })
-  @IsBoolean()
-  @IsOptional()
-  canManageProjects?: boolean = false;
-
-  @ApiProperty({ description: 'Can manage locales', default: false })
-  @IsBoolean()
-  @IsOptional()
-  canManageLocales?: boolean = false;
-
-  @ApiProperty({ description: 'Can translate content', default: false })
-  @IsBoolean()
-  @IsOptional()
-  canTranslate?: boolean = false;
-
-  @ApiProperty({ description: 'Can approve translations', default: false })
-  @IsBoolean()
-  @IsOptional()
-  canApproveTranslations?: boolean = false;
-}
 
 export class CreateUserDto {
   @ApiProperty({ description: 'User email address' })
@@ -78,16 +49,6 @@ export class CreateUserDto {
   @IsBoolean()
   @IsOptional()
   isSystemAdmin?: boolean = false;
-
-  @ApiProperty({
-    description: 'User permissions',
-    type: UserPermissionsDto,
-    required: false,
-  })
-  @ValidateNested()
-  @Type(() => UserPermissionsDto)
-  @IsOptional()
-  permissions?: UserPermissionsDto;
 
   @ApiProperty({
     description: 'ID of the company the user belongs to',

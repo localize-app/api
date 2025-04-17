@@ -3,7 +3,6 @@ import { Role } from 'src/common/enums/role.enum';
 
 /**
  * Central service for managing role-based permissions
- * This allows us to define permissions per role in a single place
  */
 @Injectable()
 export class RolePermissionsService {
@@ -95,6 +94,78 @@ export class RolePermissionsService {
           // Reports and analytics
           canViewReports: true,
           canExportData: true,
+        };
+
+      case Role.MANAGER:
+        return {
+          // User management
+          canManageUsers: false,
+          canInviteUsers: true,
+          canRemoveUsers: false,
+
+          // Project management
+          canCreateProjects: false,
+          canManageProjects: true,
+          canArchiveProjects: false,
+
+          // Content management
+          canCreatePhrases: true,
+          canEditPhrases: true,
+          canDeletePhrases: false,
+          canTranslate: true,
+          canApproveTranslations: true,
+
+          // Locale management
+          canManageLocales: true,
+
+          // Glossary management
+          canManageGlossary: true,
+
+          // Integration management
+          canManageIntegrations: false,
+
+          // Settings management
+          canManageSettings: false,
+
+          // Reports and analytics
+          canViewReports: true,
+          canExportData: true,
+        };
+
+      case Role.TRANSLATOR:
+        return {
+          // User management
+          canManageUsers: false,
+          canInviteUsers: false,
+          canRemoveUsers: false,
+
+          // Project management
+          canCreateProjects: false,
+          canManageProjects: false,
+          canArchiveProjects: false,
+
+          // Content management
+          canCreatePhrases: false,
+          canEditPhrases: false,
+          canDeletePhrases: false,
+          canTranslate: true,
+          canApproveTranslations: false,
+
+          // Locale management
+          canManageLocales: false,
+
+          // Glossary management
+          canManageGlossary: false,
+
+          // Integration management
+          canManageIntegrations: false,
+
+          // Settings management
+          canManageSettings: false,
+
+          // Reports and analytics
+          canViewReports: false,
+          canExportData: false,
         };
 
       case Role.MEMBER:

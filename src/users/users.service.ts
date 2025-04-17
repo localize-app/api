@@ -17,7 +17,7 @@ export class UsersService {
   async create(createUserDto: CreateUserDto): Promise<User> {
     // If the request has a password, hash it before storing as passwordHash
     if (createUserDto?.password) {
-      const { password, permissions, role, ...userData } = createUserDto;
+      const { password, role, ...userData } = createUserDto;
 
       // Hash the password if it hasn't been hashed already
       const passwordHash =
@@ -25,18 +25,13 @@ export class UsersService {
           ? password // Already hashed
           : await bcrypt.hash(password, 10); // Hash it now
 
-      // Determine role and permissions
+      // Determine role
       const userRole = role || Role.MEMBER;
-
-      // If permissions are provided, use them; otherwise, get defaults for the role
-      const userPermissions =
-        permissions || getDefaultPermissionsForRole(userRole);
 
       const newUser = new this.userModel({
         ...userData,
         passwordHash,
         role: userRole,
-        permissions: userPermissions,
       });
 
       return newUser.save();
@@ -78,11 +73,6 @@ export class UsersService {
       const { password, ...rest } = updateData as any;
       const passwordHash = await bcrypt.hash(password, 10);
       Object.assign(updateData, { ...rest, passwordHash });
-    }
-
-    // Handle role change - update permissions if role changes and permissions aren't specified
-    if (updateUserDto?.role && !updateUserDto?.permissions) {
-      updateData.permissions = getDefaultPermissionsForRole(updateUserDto.role);
     }
 
     const updatedUser = await this.userModel

@@ -1,10 +1,10 @@
 // src/integrations/entities/integration-config.entity.ts
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 
-@Schema({ _id: false, discriminatorKey: 'integrationType' })
+@Schema({ _id: false, discriminatorKey: 'configType' })
 export class BaseIntegrationConfig {
-  @Prop({ required: true })
-  integrationType: string;
+  // The discriminator key will be added automatically by Mongoose
+  // Don't define a property with the same name as the discriminator key
 }
 
 export const BaseIntegrationConfigSchema = SchemaFactory.createForClass(
