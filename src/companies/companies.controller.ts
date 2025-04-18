@@ -8,7 +8,6 @@ import {
   Delete,
   Res,
   HttpStatus,
-  UseGuards,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -16,14 +15,12 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CompaniesService } from './companies.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
-import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from 'src/common/enums/role.enum';
 
 @ApiTags('Companies')
 @ApiBearerAuth() // Add bearer auth to Swagger docs
 @Controller('companies')
-@UseGuards(RolesGuard) // Apply role guard to the entire controller
 export class CompaniesController {
   constructor(private readonly companiesService: CompaniesService) {}
 

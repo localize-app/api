@@ -1,0 +1,2137 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Return JWT token and user data"
+          }
+        },
+        "summary": "User login",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "operationId": "AuthController_register",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User successfully created"
+          }
+        },
+        "summary": "User registration",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/auth/profile": {
+      "get": {
+        "operationId": "AuthController_getProfile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Return the current user profile"
+          }
+        },
+        "summary": "Get current user profile",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/user": {
+      "post": {
+        "operationId": "UsersController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Users"
+        ]
+      },
+      "get": {
+        "operationId": "UsersController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/user/{id}": {
+      "get": {
+        "operationId": "UsersController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Users"
+        ]
+      },
+      "put": {
+        "operationId": "UsersController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Users"
+        ]
+      },
+      "delete": {
+        "operationId": "UsersController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/companies": {
+      "post": {
+        "operationId": "CompaniesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCompanyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Companies"
+        ]
+      },
+      "get": {
+        "operationId": "CompaniesController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Companies"
+        ]
+      }
+    },
+    "/companies/{id}": {
+      "get": {
+        "operationId": "CompaniesController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Companies"
+        ]
+      },
+      "patch": {
+        "operationId": "CompaniesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCompanyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Companies"
+        ]
+      },
+      "delete": {
+        "operationId": "CompaniesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Companies"
+        ]
+      }
+    },
+    "/projects": {
+      "post": {
+        "operationId": "ProjectsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Projects"
+        ]
+      },
+      "get": {
+        "operationId": "ProjectsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/projects/{id}": {
+      "get": {
+        "operationId": "ProjectsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Projects"
+        ]
+      },
+      "patch": {
+        "operationId": "ProjectsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Projects"
+        ]
+      },
+      "delete": {
+        "operationId": "ProjectsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/projects/{id}/members/{userId}": {
+      "post": {
+        "operationId": "ProjectsController_addMember",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Projects"
+        ]
+      },
+      "delete": {
+        "operationId": "ProjectsController_removeMember",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/projects/{id}/settings": {
+      "patch": {
+        "operationId": "ProjectsController_updateSettings",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/locales": {
+      "post": {
+        "operationId": "LocalesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLocaleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Locales"
+        ]
+      },
+      "get": {
+        "operationId": "LocalesController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Locales"
+        ]
+      }
+    },
+    "/locales/{id}": {
+      "get": {
+        "operationId": "LocalesController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Locales"
+        ]
+      },
+      "patch": {
+        "operationId": "LocalesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateLocaleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Locales"
+        ]
+      },
+      "delete": {
+        "operationId": "LocalesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Locales"
+        ]
+      }
+    },
+    "/phrases": {
+      "post": {
+        "operationId": "PhrasesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePhraseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Phrases"
+        ]
+      },
+      "get": {
+        "operationId": "PhrasesController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Phrases"
+        ]
+      }
+    },
+    "/phrases/{id}": {
+      "get": {
+        "operationId": "PhrasesController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Phrases"
+        ]
+      },
+      "patch": {
+        "operationId": "PhrasesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePhraseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Phrases"
+        ]
+      },
+      "delete": {
+        "operationId": "PhrasesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Phrases"
+        ]
+      }
+    },
+    "/phrases/{id}/translations/{locale}": {
+      "post": {
+        "operationId": "PhrasesController_addTranslation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locale",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddTranslationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Phrases"
+        ]
+      }
+    },
+    "/phrases/{id}/status": {
+      "patch": {
+        "operationId": "PhrasesController_updateStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Phrases"
+        ]
+      }
+    },
+    "/phrases/batch": {
+      "post": {
+        "operationId": "PhrasesController_batchOperation",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchOperationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Phrases"
+        ]
+      }
+    },
+    "/activities": {
+      "post": {
+        "operationId": "ActivitiesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateActivityDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Activities"
+        ]
+      },
+      "get": {
+        "operationId": "ActivitiesController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Activities"
+        ]
+      }
+    },
+    "/style-guides": {
+      "post": {
+        "operationId": "StyleGuidesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateStyleGuideDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "StyleGuides"
+        ]
+      },
+      "get": {
+        "operationId": "StyleGuidesController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "StyleGuides"
+        ]
+      }
+    },
+    "/style-guides/{id}": {
+      "get": {
+        "operationId": "StyleGuidesController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "StyleGuides"
+        ]
+      },
+      "patch": {
+        "operationId": "StyleGuidesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStyleGuideDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "StyleGuides"
+        ]
+      },
+      "delete": {
+        "operationId": "StyleGuidesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "StyleGuides"
+        ]
+      }
+    },
+    "/glossary-terms": {
+      "post": {
+        "operationId": "GlossaryTermsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGlossaryTermDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "GlossaryTerms"
+        ]
+      },
+      "get": {
+        "operationId": "GlossaryTermsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "GlossaryTerms"
+        ]
+      }
+    },
+    "/glossary-terms/{id}": {
+      "get": {
+        "operationId": "GlossaryTermsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "GlossaryTerms"
+        ]
+      },
+      "patch": {
+        "operationId": "GlossaryTermsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGlossaryTermDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "GlossaryTerms"
+        ]
+      },
+      "delete": {
+        "operationId": "GlossaryTermsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "GlossaryTerms"
+        ]
+      }
+    },
+    "/glossary-terms/{id}/translations/{locale}": {
+      "post": {
+        "operationId": "GlossaryTermsController_addTranslation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locale",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddTranslationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "GlossaryTerms"
+        ]
+      },
+      "delete": {
+        "operationId": "GlossaryTermsController_removeTranslation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locale",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "GlossaryTerms"
+        ]
+      }
+    },
+    "/glossary-terms/sync/google/{companyId}/{locale}": {
+      "post": {
+        "operationId": "GlossaryTermsController_syncWithGoogle",
+        "parameters": [
+          {
+            "name": "companyId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locale",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "GlossaryTerms"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Localize API",
+    "description": "API documentation for Localize platform",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [
+    {
+      "name": "Companies",
+      "description": ""
+    },
+    {
+      "name": "Projects",
+      "description": ""
+    },
+    {
+      "name": "Users",
+      "description": ""
+    },
+    {
+      "name": "Phrases",
+      "description": ""
+    },
+    {
+      "name": "Locales",
+      "description": ""
+    },
+    {
+      "name": "GlossaryTerms",
+      "description": ""
+    },
+    {
+      "name": "Activities",
+      "description": ""
+    },
+    {
+      "name": "Authentication",
+      "description": ""
+    }
+  ],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "User email"
+          },
+          "password": {
+            "type": "string",
+            "description": "User password"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "RegisterDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "User email"
+          },
+          "password": {
+            "type": "string",
+            "description": "User password"
+          },
+          "firstName": {
+            "type": "string",
+            "description": "User's first name",
+            "example": "John"
+          },
+          "lastName": {
+            "type": "string",
+            "description": "User's last name",
+            "example": "Doe"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "firstName"
+        ]
+      },
+      "CreateUserDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "User email address"
+          },
+          "password": {
+            "type": "string",
+            "description": "User password (will be hashed)"
+          },
+          "firstName": {
+            "type": "string",
+            "description": "User's first name"
+          },
+          "lastName": {
+            "type": "string",
+            "description": "User's last name"
+          },
+          "role": {
+            "type": "string",
+            "description": "User role",
+            "enum": [
+              "admin",
+              "owner",
+              "manager",
+              "member",
+              "translator"
+            ],
+            "default": "member"
+          },
+          "isSystemAdmin": {
+            "type": "boolean",
+            "description": "Is user a system administrator",
+            "default": false
+          },
+          "company": {
+            "description": "ID of the company the user belongs to",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "ObjectId"
+            }
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "firstName"
+        ]
+      },
+      "UpdateUserDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "User email"
+          },
+          "password": {
+            "type": "string",
+            "description": "User password"
+          },
+          "firstName": {
+            "type": "string",
+            "description": "User's first name"
+          },
+          "lastName": {
+            "type": "string",
+            "description": "User's last name"
+          },
+          "avatarUrl": {
+            "type": "string",
+            "description": "User avatar URL"
+          },
+          "isSystemAdmin": {
+            "type": "boolean",
+            "description": "Is the user a system administrator"
+          },
+          "role": {
+            "type": "string",
+            "description": "User role",
+            "enum": [
+              "admin",
+              "owner",
+              "manager",
+              "member",
+              "translator"
+            ]
+          },
+          "companies": {
+            "description": "User companies",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "ObjectId"
+            }
+          }
+        }
+      },
+      "CreateCompanyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Company name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Company description"
+          },
+          "projects": {
+            "description": "Array of project IDs",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "ObjectId"
+            }
+          },
+          "users": {
+            "description": "Array of user IDs",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "ObjectId"
+            }
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateCompanyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Company name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Company description"
+          },
+          "projects": {
+            "description": "Array of project IDs",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "ObjectId"
+            }
+          },
+          "users": {
+            "description": "Array of user IDs",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "ObjectId"
+            }
+          }
+        }
+      },
+      "ProjectSettingsDto": {
+        "type": "object",
+        "properties": {
+          "translationQA": {
+            "type": "boolean",
+            "description": "Enable translation quality assurance?",
+            "default": true
+          },
+          "monthlyReport": {
+            "type": "boolean",
+            "description": "Generate monthly translation reports?",
+            "default": true
+          },
+          "autoDetectLanguage": {
+            "type": "boolean",
+            "description": "Automatically detect source language?",
+            "default": true
+          },
+          "archiveUnusedPhrases": {
+            "type": "boolean",
+            "description": "Automatically archive unused phrases?",
+            "default": false
+          },
+          "translateMetaTags": {
+            "type": "boolean",
+            "description": "Translate meta tags?",
+            "default": true
+          },
+          "translateAriaLabels": {
+            "type": "boolean",
+            "description": "Translate ARIA labels?",
+            "default": true
+          },
+          "translatePageTitles": {
+            "type": "boolean",
+            "description": "Translate page titles?",
+            "default": true
+          },
+          "customizeImages": {
+            "type": "boolean",
+            "description": "Customize images based on locale?",
+            "default": false
+          },
+          "customizeUrls": {
+            "type": "boolean",
+            "description": "Customize URLs based on locale?",
+            "default": false
+          },
+          "customizeAudio": {
+            "type": "boolean",
+            "description": "Customize audio based on locale?",
+            "default": false
+          },
+          "dateHandling": {
+            "type": "boolean",
+            "description": "Handle date formats based on locale?",
+            "default": true
+          },
+          "ignoreCurrency": {
+            "type": "boolean",
+            "description": "Ignore currency formatting in translations?",
+            "default": false
+          }
+        }
+      },
+      "CreateProjectDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Project name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Project description"
+          },
+          "company": {
+            "type": "string",
+            "description": "Company ID",
+            "format": "ObjectId"
+          },
+          "projectType": {
+            "type": "string",
+            "description": "Type of project",
+            "enum": [
+              "website",
+              "webapp",
+              "mobile_app",
+              "desktop_app",
+              "other"
+            ],
+            "default": "website"
+          },
+          "websiteUrl": {
+            "type": "string",
+            "description": "Website URL (if applicable)"
+          },
+          "projectKey": {
+            "type": "string",
+            "description": "Unique project key"
+          },
+          "supportedLocales": {
+            "description": "Array of supported locale codes",
+            "example": [
+              "en-US",
+              "fr-CA"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "isArchived": {
+            "type": "boolean",
+            "description": "Is the project archived?",
+            "default": false
+          },
+          "members": {
+            "description": "Array of member user IDs",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "ObjectId"
+            }
+          },
+          "settings": {
+            "description": "Project settings",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProjectSettingsDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "company"
+        ]
+      },
+      "UpdateProjectSettingsDto": {
+        "type": "object",
+        "properties": {
+          "translationQA": {
+            "type": "boolean",
+            "description": "Enable translation quality assurance?"
+          },
+          "monthlyReport": {
+            "type": "boolean",
+            "description": "Generate monthly translation reports?"
+          },
+          "autoDetectLanguage": {
+            "type": "boolean",
+            "description": "Automatically detect source language?"
+          },
+          "archiveUnusedPhrases": {
+            "type": "boolean",
+            "description": "Automatically archive unused phrases?"
+          },
+          "translateMetaTags": {
+            "type": "boolean",
+            "description": "Translate meta tags?"
+          },
+          "translateAriaLabels": {
+            "type": "boolean",
+            "description": "Translate ARIA labels?"
+          },
+          "translatePageTitles": {
+            "type": "boolean",
+            "description": "Translate page titles?"
+          },
+          "customizeImages": {
+            "type": "boolean",
+            "description": "Customize images based on locale?"
+          },
+          "customizeUrls": {
+            "type": "boolean",
+            "description": "Customize URLs based on locale?"
+          },
+          "customizeAudio": {
+            "type": "boolean",
+            "description": "Customize audio based on locale?"
+          },
+          "dateHandling": {
+            "type": "boolean",
+            "description": "Handle date formats based on locale?"
+          },
+          "ignoreCurrency": {
+            "type": "boolean",
+            "description": "Ignore currency formatting in translations?"
+          }
+        }
+      },
+      "UpdateProjectDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Project name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Project description"
+          },
+          "company": {
+            "type": "string",
+            "description": "Company ID",
+            "format": "ObjectId"
+          },
+          "projectType": {
+            "type": "string",
+            "description": "Type of project",
+            "enum": [
+              "website",
+              "webapp",
+              "mobile_app",
+              "desktop_app",
+              "other"
+            ]
+          },
+          "websiteUrl": {
+            "type": "string",
+            "description": "Website URL (if applicable)"
+          },
+          "projectKey": {
+            "type": "string",
+            "description": "Unique project key"
+          },
+          "supportedLocales": {
+            "description": "Array of supported locale codes",
+            "example": [
+              "en-US",
+              "fr-CA"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "isArchived": {
+            "type": "boolean",
+            "description": "Is the project archived?"
+          },
+          "members": {
+            "description": "Array of member user IDs",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "ObjectId"
+            }
+          },
+          "settings": {
+            "description": "Project settings",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UpdateProjectSettingsDto"
+              }
+            ]
+          }
+        }
+      },
+      "CreateLocaleDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Locale code (e.g., en-US)"
+          },
+          "language": {
+            "type": "string",
+            "description": "Language name (e.g., English)"
+          },
+          "content": {
+            "type": "object",
+            "description": "Locale content (can be any JSON object)"
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Is the locale active?",
+            "default": true
+          },
+          "projects": {
+            "description": "Array of project IDs",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "ObjectId"
+            }
+          }
+        },
+        "required": [
+          "code",
+          "language",
+          "projects"
+        ]
+      },
+      "UpdateLocaleDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "TranslationDto": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Translation text"
+          },
+          "status": {
+            "type": "string",
+            "description": "Translation status",
+            "enum": [
+              "pending",
+              "approved",
+              "rejected",
+              "needs_review"
+            ]
+          },
+          "isHuman": {
+            "type": "boolean",
+            "description": "Was this translation done by a human?"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "CreatePhraseDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Phrase key (unique within the project)"
+          },
+          "sourceText": {
+            "type": "string",
+            "description": "Source text of the phrase"
+          },
+          "context": {
+            "type": "string",
+            "description": "Context for the phrase"
+          },
+          "project": {
+            "type": "string",
+            "description": "Project ID",
+            "format": "ObjectId"
+          },
+          "status": {
+            "type": "string",
+            "description": "Phrase status",
+            "enum": [
+              "published",
+              "pending",
+              "needs_review",
+              "rejected",
+              "archived"
+            ]
+          },
+          "isArchived": {
+            "type": "boolean",
+            "description": "Is the phrase archived?",
+            "default": false
+          },
+          "translations": {
+            "description": "Translations for different locales",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TranslationDto"
+              }
+            ]
+          },
+          "tags": {
+            "description": "Array of tags for the phrase",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sourceUrl": {
+            "type": "string",
+            "description": "Source URL where the phrase is used"
+          },
+          "screenshot": {
+            "type": "string",
+            "description": "URL of a screenshot related to the phrase"
+          }
+        },
+        "required": [
+          "key",
+          "sourceText",
+          "project"
+        ]
+      },
+      "UpdateTranslationDto": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Translation text"
+          },
+          "status": {
+            "type": "string",
+            "description": "Translation status",
+            "enum": [
+              "pending",
+              "approved",
+              "rejected",
+              "needs_review"
+            ]
+          },
+          "isHuman": {
+            "type": "boolean",
+            "description": "Was this translation done by a human?"
+          }
+        }
+      },
+      "UpdatePhraseDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Phrase key (unique within the project)"
+          },
+          "sourceText": {
+            "type": "string",
+            "description": "Source text of the phrase"
+          },
+          "context": {
+            "type": "string",
+            "description": "Context for the phrase"
+          },
+          "project": {
+            "type": "string",
+            "description": "Project ID",
+            "format": "ObjectId"
+          },
+          "status": {
+            "type": "string",
+            "description": "Phrase status",
+            "enum": [
+              "published",
+              "pending",
+              "needs_review",
+              "rejected",
+              "archived"
+            ]
+          },
+          "isArchived": {
+            "type": "boolean",
+            "description": "Is the phrase archived?"
+          },
+          "translations": {
+            "description": "Translations for different locales",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UpdateTranslationDto"
+              }
+            ]
+          },
+          "tags": {
+            "description": "Array of tags for the phrase",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sourceUrl": {
+            "type": "string",
+            "description": "Source URL where the phrase is used"
+          },
+          "screenshot": {
+            "type": "string",
+            "description": "URL of a screenshot related to the phrase"
+          }
+        }
+      },
+      "AddTranslationDto": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Translation text"
+          },
+          "status": {
+            "type": "string",
+            "description": "Translation status",
+            "enum": [
+              "pending",
+              "approved",
+              "rejected",
+              "needs_review"
+            ],
+            "default": "pending"
+          },
+          "isHuman": {
+            "type": "boolean",
+            "description": "Was this translation done by a human?",
+            "default": true
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "UpdateStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "New status for the item",
+            "enum": [
+              "published",
+              "pending",
+              "needs_review",
+              "rejected",
+              "archived"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "BatchItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Item ID",
+            "format": "ObjectId"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "BatchOperationDto": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "description": "Operation to perform",
+            "enum": [
+              "publish",
+              "archive",
+              "delete",
+              "tag",
+              "untag"
+            ]
+          },
+          "items": {
+            "description": "Array of items to operate on",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BatchItemDto"
+            }
+          },
+          "tag": {
+            "type": "string",
+            "description": "Tag value (for tag/untag operations)"
+          }
+        },
+        "required": [
+          "operation",
+          "items"
+        ]
+      },
+      "CreateActivityDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateStyleGuideDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateStyleGuideDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateGlossaryTermDto": {
+        "type": "object",
+        "properties": {
+          "term": {
+            "type": "string",
+            "description": "Glossary term"
+          },
+          "description": {
+            "type": "string",
+            "description": "Term description"
+          },
+          "translations": {
+            "type": "object",
+            "description": "Translations in different languages",
+            "example": {
+              "en": "Example",
+              "fr": "Exemple"
+            }
+          },
+          "company": {
+            "type": "string",
+            "description": "Company ID",
+            "format": "ObjectId"
+          },
+          "projects": {
+            "description": "Array of project IDs",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "ObjectId"
+            }
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "ID of the user who created the term",
+            "format": "ObjectId"
+          },
+          "isGlobal": {
+            "type": "boolean",
+            "description": "Is this a global term?",
+            "default": false
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Is the term currently active?",
+            "default": true
+          },
+          "tags": {
+            "description": "Array of tags",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "term",
+          "translations",
+          "company"
+        ]
+      },
+      "UpdateGlossaryTermDto": {
+        "type": "object",
+        "properties": {
+          "term": {
+            "type": "string",
+            "description": "Glossary term"
+          },
+          "description": {
+            "type": "string",
+            "description": "Term description"
+          },
+          "translations": {
+            "type": "object",
+            "description": "Translations in different languages",
+            "example": {
+              "en": "Updated Example",
+              "fr": "Exemple mis à jour"
+            }
+          },
+          "company": {
+            "type": "string",
+            "description": "Company ID",
+            "format": "ObjectId"
+          },
+          "projects": {
+            "description": "Array of project IDs",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "ObjectId"
+            }
+          },
+          "isGlobal": {
+            "type": "boolean",
+            "description": "Is this a global term?"
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Is the term currently active?"
+          },
+          "tags": {
+            "description": "Array of tags",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "translations"
+        ]
+      }
+    }
+  }
+}

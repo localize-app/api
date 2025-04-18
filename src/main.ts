@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import helmet from 'helmet';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
@@ -50,6 +51,9 @@ async function bootstrap() {
 
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
+
+  // Save OpenAPI document as JSON
+  fs.writeFileSync('./openapi-spec.json', JSON.stringify(document, null, 2));
 
   // Get port from environment variables
   const port = configService.get<number>('PORT', 3000);
