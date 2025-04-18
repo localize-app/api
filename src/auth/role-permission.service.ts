@@ -11,7 +11,7 @@ export class RolePermissionsService {
    */
   hasPermission(role: string, permission: string): boolean {
     // System admins have all permissions
-    if (role === 'system_admin') {
+    if (role === 'admin') {
       return true;
     }
 

@@ -3,7 +3,6 @@ import {
   IsOptional,
   IsEmail,
   IsString,
-  IsArray,
   IsMongoId,
   IsBoolean,
   IsEnum,
@@ -54,13 +53,11 @@ export class UpdateUserDto {
   role?: string;
 
   @ApiProperty({
-    description: 'User companies',
-    type: [String],
+    description: 'User company',
     format: 'ObjectId',
     required: false,
   })
-  @IsArray()
-  @IsMongoId({ each: true })
+  @IsMongoId()
   @IsOptional()
-  companies?: string[];
+  company?: string;
 }

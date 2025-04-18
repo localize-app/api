@@ -23,14 +23,5 @@ export class UpdateCompanyDto {
   @IsOptional()
   projects?: string[]; // Optional array of project IDs
 
-  @ApiProperty({
-    description: 'Array of user IDs',
-    type: [String],
-    format: 'ObjectId',
-    required: false,
-  })
-  @IsArray()
-  @IsMongoId({ each: true })
-  @IsOptional()
-  users?: string[]; // Optional array of user IDs
+  // Removed users array as users will reference the company
 }

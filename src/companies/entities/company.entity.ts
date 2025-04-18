@@ -2,7 +2,6 @@ import * as mongoose from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 
-import { User } from 'src/users/entities/user.entity';
 import { Project } from 'src/projects/entities/project.entity';
 import { BaseEntity, baseSchemaOptions } from 'src/common/entities/base.entity';
 
@@ -20,9 +19,6 @@ export class Company extends BaseEntity {
     type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Project' }],
   })
   projects: Project[]; // Reference to Project entities
-
-  @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }] })
-  users: User[];
 }
 
 export const CompanySchema = SchemaFactory.createForClass(Company);

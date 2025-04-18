@@ -82,9 +82,15 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "User successfully created"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new user",
         "tags": [
           "Users"
         ]
@@ -94,9 +100,15 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Returns an array of users"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all users",
         "tags": [
           "Users"
         ]
@@ -110,6 +122,7 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "User ID",
             "schema": {
               "type": "string"
             }
@@ -117,9 +130,15 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Returns a user"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a user by ID",
         "tags": [
           "Users"
         ]
@@ -131,6 +150,7 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "User ID",
             "schema": {
               "type": "string"
             }
@@ -148,9 +168,15 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "User successfully updated"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a user",
         "tags": [
           "Users"
         ]
@@ -162,6 +188,7 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "User ID",
             "schema": {
               "type": "string"
             }
@@ -169,9 +196,54 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "User successfully deleted"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a user",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/user/{id}/company/{companyId}": {
+      "patch": {
+        "operationId": "UsersController_setCompany",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "User ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "companyId",
+            "required": true,
+            "in": "path",
+            "description": "Company ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User company successfully updated"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set the company for a user",
         "tags": [
           "Users"
         ]
@@ -193,7 +265,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "Company successfully created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyWithUsersDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -201,6 +280,7 @@
             "bearer": []
           }
         ],
+        "summary": "Create a new company",
         "tags": [
           "Companies"
         ]
@@ -210,7 +290,17 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Returns an array of companies with user data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CompanyWithUsersDto"
+                  }
+                }
+              }
+            }
           }
         },
         "security": [
@@ -218,6 +308,7 @@
             "bearer": []
           }
         ],
+        "summary": "Get all companies with their users",
         "tags": [
           "Companies"
         ]
@@ -231,6 +322,7 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Company ID",
             "schema": {
               "type": "string"
             }
@@ -238,7 +330,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Returns a company with user data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyWithUsersDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -246,6 +345,7 @@
             "bearer": []
           }
         ],
+        "summary": "Get a company by ID with its users",
         "tags": [
           "Companies"
         ]
@@ -257,6 +357,7 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Company ID",
             "schema": {
               "type": "string"
             }
@@ -274,7 +375,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "Company successfully updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyWithUsersDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -282,6 +390,7 @@
             "bearer": []
           }
         ],
+        "summary": "Update a company",
         "tags": [
           "Companies"
         ]
@@ -293,6 +402,7 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Company ID",
             "schema": {
               "type": "string"
             }
@@ -300,7 +410,7 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Company successfully deleted"
           }
         },
         "security": [
@@ -308,6 +418,97 @@
             "bearer": []
           }
         ],
+        "summary": "Delete a company",
+        "tags": [
+          "Companies"
+        ]
+      }
+    },
+    "/companies/{id}/users/{userId}": {
+      "post": {
+        "operationId": "CompaniesController_addUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Company ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "description": "User ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User successfully added to company",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyWithUsersDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a user to a company",
+        "tags": [
+          "Companies"
+        ]
+      },
+      "delete": {
+        "operationId": "CompaniesController_removeUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Company ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "description": "User ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User successfully removed from company",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyWithUsersDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a user from a company",
         "tags": [
           "Companies"
         ]
@@ -1319,12 +1520,9 @@
             "default": false
           },
           "company": {
+            "type": "string",
             "description": "ID of the company the user belongs to",
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "ObjectId"
-            }
+            "format": "ObjectId"
           }
         },
         "required": [
@@ -1371,13 +1569,10 @@
               "translator"
             ]
           },
-          "companies": {
-            "description": "User companies",
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "ObjectId"
-            }
+          "company": {
+            "type": "string",
+            "description": "User company",
+            "format": "ObjectId"
           }
         }
       },
@@ -1399,23 +1594,78 @@
               "type": "string",
               "format": "ObjectId"
             }
-          },
-          "users": {
-            "description": "Array of user IDs",
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "ObjectId"
-            }
           }
         },
         "required": [
           "name"
         ]
       },
-      "UpdateCompanyDto": {
+      "UserDto": {
         "type": "object",
         "properties": {
+          "id": {
+            "type": "string",
+            "description": "User ID"
+          },
+          "email": {
+            "type": "string",
+            "description": "User email address"
+          },
+          "firstName": {
+            "type": "string",
+            "description": "User's first name"
+          },
+          "lastName": {
+            "type": "string",
+            "description": "User's last name"
+          },
+          "avatarUrl": {
+            "type": "string",
+            "description": "User's avatar URL"
+          },
+          "isSystemAdmin": {
+            "type": "boolean",
+            "description": "Whether the user is a system admin",
+            "default": false
+          },
+          "role": {
+            "type": "string",
+            "description": "User role",
+            "enum": [
+              "admin",
+              "owner",
+              "manager",
+              "member",
+              "translator"
+            ],
+            "default": "member"
+          },
+          "company": {
+            "type": "string",
+            "description": "Company ID the user belongs to",
+            "format": "ObjectId"
+          },
+          "lastLoginAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Last login timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "firstName",
+          "isSystemAdmin",
+          "role"
+        ]
+      },
+      "CompanyWithUsersDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Company ID"
+          },
           "name": {
             "type": "string",
             "description": "Company name"
@@ -1433,7 +1683,31 @@
             }
           },
           "users": {
-            "description": "Array of user IDs",
+            "description": "Users belonging to this company",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "UpdateCompanyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Company name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Company description"
+          },
+          "projects": {
+            "description": "Array of project IDs",
             "type": "array",
             "items": {
               "type": "string",

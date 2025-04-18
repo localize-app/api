@@ -5,6 +5,8 @@ import { Model } from 'mongoose';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
 import { Company, CompanyDocument } from './entities/company.entity';
+import { User, UserDocument } from 'src/users/entities/user.entity';
+import { CompanyWithUsers } from './interfaces/company-with-users.interface';
 import {
   DuplicateEntityException,
   EntityNotFoundException,
@@ -17,16 +19,21 @@ export class CompaniesService {
 
   constructor(
     @InjectModel(Company.name) private companyModel: Model<CompanyDocument>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
   ) {}
 
   // Create a new company
-  async create(createCompanyDto: CreateCompanyDto): Promise<Company> {
+  async create(createCompanyDto: CreateCompanyDto): Promise<CompanyWithUsers> {
+    const session = await this.companyModel.db.startSession();
+    session.startTransaction();
+
     try {
       // Check if a company with the same name already exists
       const existingCompany = await this.companyModel
         .findOne({
           name: createCompanyDto.name,
         })
+        .session(session)
         .exec();
 
       if (existingCompany) {
@@ -38,8 +45,22 @@ export class CompaniesService {
       }
 
       const newCompany = new this.companyModel(createCompanyDto);
-      return await newCompany.save();
+      await newCompany.save({ session });
+
+      await session.commitTransaction();
+
+      // Return company with empty users array
+      const companyObj = newCompany.toObject();
+
+      // Create a CompanyWithUsers object
+      const companyWithUsers = {
+        ...companyObj,
+        users: [],
+      };
+
+      return companyWithUsers;
     } catch (error) {
+      await session.abortTransaction();
       this.logger.error(
         `Failed to create company: ${error.message}`,
         error.stack,
@@ -69,17 +90,37 @@ export class CompaniesService {
 
       // Re-throw the original error
       throw error;
+    } finally {
+      session.endSession();
     }
   }
 
-  // Get all companies
-  async findAll(): Promise<Company[]> {
+  // Get all companies with their associated users
+  async findAll(): Promise<CompanyWithUsers[]> {
     try {
-      return await this.companyModel
+      const companies = await this.companyModel
         .find()
         .populate('projects')
-        .populate('users')
         .exec();
+
+      // Fetch users for each company and add them to the response
+      const companiesWithUsers = await Promise.all(
+        companies.map(async (company) => {
+          const users = await this.userModel
+            .find({ company: company._id })
+            .exec();
+
+          const companyObj = company.toObject();
+
+          // Create a CompanyWithUsers object
+          return {
+            ...companyObj,
+            users: users,
+          };
+        }),
+      );
+
+      return companiesWithUsers;
     } catch (error) {
       this.logger.error(
         `Failed to fetch companies: ${error.message}`,
@@ -89,20 +130,28 @@ export class CompaniesService {
     }
   }
 
-  // Get a specific company by ID
-  async findOne(id: string): Promise<Company> {
+  // Get a specific company by ID with associated users
+  async findOne(id: string): Promise<CompanyWithUsers> {
     try {
       const company = await this.companyModel
         .findById(id)
         .populate('projects')
-        .populate('users')
         .exec();
 
       if (!company) {
         throw new EntityNotFoundException('Company', id);
       }
 
-      return company;
+      // Get users belonging to this company
+      const users = await this.userModel.find({ company: id }).exec();
+
+      const companyObj = company.toObject();
+
+      // Create a CompanyWithUsers object
+      return {
+        ...companyObj,
+        users: users,
+      };
     } catch (error) {
       this.logger.error(
         `Failed to fetch company with ID ${id}: ${error.message}`,
@@ -128,7 +177,10 @@ export class CompaniesService {
   async update(
     id: string,
     updateCompanyDto: UpdateCompanyDto,
-  ): Promise<Company> {
+  ): Promise<CompanyWithUsers> {
+    const session = await this.companyModel.db.startSession();
+    session.startTransaction();
+
     try {
       // Check if updating name and if the new name already exists
       if (updateCompanyDto.name) {
@@ -137,6 +189,7 @@ export class CompaniesService {
             name: updateCompanyDto.name,
             _id: { $ne: id },
           })
+          .session(session)
           .exec();
 
         if (existingCompany) {
@@ -149,17 +202,31 @@ export class CompaniesService {
       }
 
       const updatedCompany = await this.companyModel
-        .findByIdAndUpdate(id, updateCompanyDto, { new: true })
+        .findByIdAndUpdate(id, updateCompanyDto, { new: true, session })
         .populate('projects')
-        .populate('users')
         .exec();
 
       if (!updatedCompany) {
         throw new EntityNotFoundException('Company', id);
       }
 
-      return updatedCompany;
+      // Get users belonging to this company
+      const users = await this.userModel
+        .find({ company: id })
+        .session(session)
+        .exec();
+
+      await session.commitTransaction();
+
+      const companyObj = updatedCompany.toObject();
+
+      // Create a CompanyWithUsers object
+      return {
+        ...companyObj,
+        users: users,
+      };
     } catch (error) {
+      await session.abortTransaction();
       this.logger.error(
         `Failed to update company with ID ${id}: ${error.message}`,
         error.stack,
@@ -189,18 +256,38 @@ export class CompaniesService {
 
       // Re-throw the original error
       throw error;
+    } finally {
+      session.endSession();
     }
   }
 
   // Delete a company
   async remove(id: string): Promise<void> {
-    try {
-      const result = await this.companyModel.findByIdAndDelete(id).exec();
+    const session = await this.companyModel.db.startSession();
+    session.startTransaction();
 
-      if (!result) {
+    try {
+      // First check if company exists
+      const company = await this.companyModel
+        .findById(id)
+        .session(session)
+        .exec();
+
+      if (!company) {
         throw new EntityNotFoundException('Company', id);
       }
+
+      // Remove company reference from users
+      await this.userModel
+        .updateMany({ company: id }, { $unset: { company: '' } }, { session })
+        .exec();
+
+      // Delete the company
+      await this.companyModel.findByIdAndDelete(id).session(session).exec();
+
+      await session.commitTransaction();
     } catch (error) {
+      await session.abortTransaction();
       this.logger.error(
         `Failed to delete company with ID ${id}: ${error.message}`,
         error.stack,
@@ -218,6 +305,117 @@ export class CompaniesService {
 
       // Re-throw the original error
       throw error;
+    } finally {
+      session.endSession();
+    }
+  }
+
+  // Add a user to a company
+  async addUser(companyId: string, userId: string): Promise<CompanyWithUsers> {
+    const session = await this.companyModel.db.startSession();
+    session.startTransaction();
+
+    try {
+      // Check if company exists
+      const company = await this.companyModel
+        .findById(companyId)
+        .session(session)
+        .exec();
+
+      if (!company) {
+        throw new EntityNotFoundException('Company', companyId);
+      }
+
+      // Update user's company field
+      const updatedUser = await this.userModel
+        .findByIdAndUpdate(
+          userId,
+          { company: companyId },
+          { new: true, session },
+        )
+        .exec();
+
+      if (!updatedUser) {
+        throw new EntityNotFoundException('User', userId);
+      }
+
+      await session.commitTransaction();
+
+      // Get all users for this company
+      const users = await this.userModel.find({ company: companyId }).exec();
+
+      const companyObj = company.toObject();
+
+      // Create a CompanyWithUsers object
+      return {
+        ...companyObj,
+        users: users,
+      };
+    } catch (error) {
+      await session.abortTransaction();
+      this.logger.error(
+        `Failed to add user to company: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    } finally {
+      session.endSession();
+    }
+  }
+
+  // Remove a user from a company
+  async removeUser(
+    companyId: string,
+    userId: string,
+  ): Promise<CompanyWithUsers> {
+    const session = await this.companyModel.db.startSession();
+    session.startTransaction();
+
+    try {
+      // Check if company exists
+      const company = await this.companyModel
+        .findById(companyId)
+        .session(session)
+        .exec();
+
+      if (!company) {
+        throw new EntityNotFoundException('Company', companyId);
+      }
+
+      // Remove company from user
+      const updatedUser = await this.userModel
+        .findByIdAndUpdate(
+          userId,
+          { $unset: { company: '' } },
+          { new: true, session },
+        )
+        .exec();
+
+      if (!updatedUser) {
+        throw new EntityNotFoundException('User', userId);
+      }
+
+      await session.commitTransaction();
+
+      // Get all users for this company
+      const users = await this.userModel.find({ company: companyId }).exec();
+
+      const companyObj = company.toObject();
+
+      // Create a CompanyWithUsers object
+      return {
+        ...companyObj,
+        users: users,
+      };
+    } catch (error) {
+      await session.abortTransaction();
+      this.logger.error(
+        `Failed to remove user from company: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    } finally {
+      session.endSession();
     }
   }
 }

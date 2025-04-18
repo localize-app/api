@@ -38,8 +38,8 @@ export class User extends BaseEntity {
   @Prop({ type: Date })
   lastLoginAt?: Date;
 
-  @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Company' }] })
-  companies: Company[];
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Company' })
+  company: Company; // Changed from companies array to single company reference
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

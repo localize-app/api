@@ -1,29 +1,25 @@
+// src/users/dto/user.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsEmail,
-  IsNotEmpty,
-  IsOptional,
   IsString,
-  IsEnum,
-  IsBoolean,
+  IsOptional,
   IsMongoId,
+  IsBoolean,
+  IsEnum,
 } from 'class-validator';
 import { Role } from 'src/common/enums/role.enum';
 
-export class CreateUserDto {
+export class UserDto {
+  @ApiProperty({ description: 'User ID' })
+  id: string;
+
   @ApiProperty({ description: 'User email address' })
   @IsEmail()
-  @IsNotEmpty()
   email: string;
-
-  @ApiProperty({ description: 'User password (will be hashed)' })
-  @IsString()
-  @IsNotEmpty()
-  password: string;
 
   @ApiProperty({ description: "User's first name" })
   @IsString()
-  @IsNotEmpty()
   firstName: string;
 
   @ApiProperty({ description: "User's last name", required: false })
@@ -31,31 +27,36 @@ export class CreateUserDto {
   @IsOptional()
   lastName?: string;
 
+  @ApiProperty({ description: "User's avatar URL", required: false })
+  @IsString()
+  @IsOptional()
+  avatarUrl?: string;
+
+  @ApiProperty({
+    description: 'Whether the user is a system admin',
+    default: false,
+  })
+  @IsBoolean()
+  isSystemAdmin: boolean;
+
   @ApiProperty({
     description: 'User role',
     enum: Object.values(Role),
     default: Role.MEMBER,
-    required: false,
   })
   @IsEnum(Role)
-  @IsOptional()
-  role?: string = Role.MEMBER;
+  role: string;
 
   @ApiProperty({
-    description: 'Is user a system administrator',
-    default: false,
-    required: false,
-  })
-  @IsBoolean()
-  @IsOptional()
-  isSystemAdmin?: boolean = false;
-
-  @ApiProperty({
-    description: 'ID of the company the user belongs to',
+    description: 'Company ID the user belongs to',
+    type: String,
     format: 'ObjectId',
     required: false,
   })
   @IsMongoId()
   @IsOptional()
   company?: string;
+
+  @ApiProperty({ description: 'Last login timestamp', required: false })
+  lastLoginAt?: Date;
 }
