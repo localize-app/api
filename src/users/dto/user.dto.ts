@@ -5,7 +5,6 @@ import {
   IsString,
   IsOptional,
   IsMongoId,
-  IsBoolean,
   IsEnum,
 } from 'class-validator';
 import { Role } from 'src/common/enums/role.enum';
@@ -31,13 +30,6 @@ export class UserDto {
   @IsString()
   @IsOptional()
   avatarUrl?: string;
-
-  @ApiProperty({
-    description: 'Whether the user is a system admin',
-    default: false,
-  })
-  @IsBoolean()
-  isSystemAdmin: boolean;
 
   @ApiProperty({
     description: 'User role',

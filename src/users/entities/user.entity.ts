@@ -25,9 +25,6 @@ export class User extends BaseEntity {
   @Prop()
   avatarUrl?: string;
 
-  @Prop({ default: false })
-  isSystemAdmin: boolean;
-
   @Prop({
     enum: Object.values(Role),
     default: Role.MEMBER,

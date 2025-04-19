@@ -2,20 +2,24 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   IsNotEmpty,
   IsOptional,
-  IsString,
+  IsEnum,
   IsBoolean,
   IsArray,
   IsMongoId,
 } from 'class-validator';
+import { LocaleCode } from 'src/common/enums/locale-code.enum';
 
 export class CreateLocaleDto {
-  @ApiProperty({ description: 'Locale code (e.g., en-US)' })
-  @IsString()
+  @ApiProperty({
+    description: 'Locale code',
+    enum: LocaleCode,
+    example: LocaleCode.EN_US,
+  })
+  @IsEnum(LocaleCode)
   @IsNotEmpty()
-  code: string; // e.g., 'en-US', 'fr-CA'
+  code: LocaleCode; // Now using enum
 
   @ApiProperty({ description: 'Language name (e.g., English)' })
-  @IsString()
   @IsNotEmpty()
   language: string; // e.g., 'English'
 

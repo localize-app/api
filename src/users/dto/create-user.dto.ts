@@ -5,7 +5,6 @@ import {
   IsOptional,
   IsString,
   IsEnum,
-  IsBoolean,
   IsMongoId,
 } from 'class-validator';
 import { Role } from 'src/common/enums/role.enum';
@@ -40,15 +39,6 @@ export class CreateUserDto {
   @IsEnum(Role)
   @IsOptional()
   role?: string = Role.MEMBER;
-
-  @ApiProperty({
-    description: 'Is user a system administrator',
-    default: false,
-    required: false,
-  })
-  @IsBoolean()
-  @IsOptional()
-  isSystemAdmin?: boolean = false;
 
   @ApiProperty({
     description: 'ID of the company the user belongs to',

@@ -9,6 +9,7 @@ import {
   ProjectSettings,
   ProjectSettingsSchema,
 } from './project-settings.entity';
+import { LocaleCode } from 'src/common/enums/locale-code.enum';
 
 export type ProjectDocument = HydratedDocument<Project>;
 
@@ -48,8 +49,12 @@ export class Project extends BaseEntity {
   @Prop()
   projectKey?: string; // For API access
 
-  @Prop({ type: [String], default: [] })
-  supportedLocales: string[]; // Array of locale codes this project supports
+  @Prop({
+    type: [String],
+    enum: Object.values(LocaleCode),
+    default: [],
+  })
+  supportedLocales: LocaleCode[]; // Array of locale codes this project supports
 
   @Prop({ default: false })
   isArchived: boolean;

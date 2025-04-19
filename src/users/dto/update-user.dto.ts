@@ -4,7 +4,6 @@ import {
   IsEmail,
   IsString,
   IsMongoId,
-  IsBoolean,
   IsEnum,
 } from 'class-validator';
 import { Role } from 'src/common/enums/role.enum';
@@ -34,14 +33,6 @@ export class UpdateUserDto {
   @IsString()
   @IsOptional()
   avatarUrl?: string;
-
-  @ApiProperty({
-    description: 'Is the user a system administrator',
-    required: false,
-  })
-  @IsBoolean()
-  @IsOptional()
-  isSystemAdmin?: boolean;
 
   @ApiProperty({
     description: 'User role',

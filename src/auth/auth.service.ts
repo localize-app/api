@@ -44,13 +44,12 @@ export class AuthService {
 
     return {
       user: {
-        _id: user.id,
+        id: user.id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
         fullName: user.fullName,
         role: user.role,
-        isSystemAdmin: user.isSystemAdmin,
         permissions: user.permissions,
       },
       access_token: this.jwtService.sign(payload),

@@ -4,13 +4,19 @@ import { HydratedDocument } from 'mongoose';
 
 import { Project } from 'src/projects/entities/project.entity';
 import { BaseEntity, baseSchemaOptions } from 'src/common/entities/base.entity';
+import { LocaleCode } from 'src/common/enums/locale-code.enum';
 
 export type LocaleDocument = HydratedDocument<Locale>;
 
 @Schema(baseSchemaOptions)
 export class Locale extends BaseEntity {
-  @Prop({ required: true, unique: true })
-  code: string; // e.g., 'en-US'
+  @Prop({
+    required: true,
+    unique: true,
+    enum: Object.values(LocaleCode),
+    type: String,
+  })
+  code: LocaleCode; // Now using enum
 
   @Prop({ required: true })
   language: string; // e.g., 'English'

@@ -1,4 +1,3 @@
-// src/projects/projects.controller.ts
 import {
   Controller,
   Get,
@@ -18,7 +17,21 @@ import { Response } from 'express';
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
+import {
+  ApiBearerAuth,
+  ApiTags,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiBody,
+  ApiResponse,
+} from '@nestjs/swagger';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '../common/enums/role.enum';
+import { RequirePermission } from '../auth/decorators/permission.decorator';
 
+@ApiTags('Projects')
+@ApiBearerAuth() // Add bearer auth to Swagger docs
 @Controller('projects')
 export class ProjectsController {
   private readonly logger = new Logger(ProjectsController.name);
@@ -26,6 +39,14 @@ export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 
   @Post()
+  @Roles(Role.ADMIN, Role.OWNER, Role.MANAGER)
+  @RequirePermission('canCreateProjects')
+  @ApiOperation({ summary: 'Create a new project' })
+  @ApiBody({ type: CreateProjectDto })
+  @ApiResponse({
+    status: 201,
+    description: 'The project has been successfully created.',
+  })
   async create(@Body() createProjectDto: CreateProjectDto) {
     try {
       return await this.projectsService.create(createProjectDto);
@@ -42,6 +63,36 @@ export class ProjectsController {
   }
 
   @Get()
+  @ApiOperation({ summary: 'Get all projects with optional filtering' })
+  @ApiQuery({
+    name: 'company',
+    required: false,
+    description: 'Filter by company ID',
+  })
+  @ApiQuery({
+    name: 'isArchived',
+    required: false,
+    description: 'Filter by archive status',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Search in name and description',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Page number for pagination',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Results per page for pagination',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of projects retrieved successfully.',
+  })
   async findAll(
     @Res({ passthrough: true }) res: Response,
     @Query() query: any,
@@ -64,6 +115,9 @@ export class ProjectsController {
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Get project by ID' })
+  @ApiParam({ name: 'id', description: 'Project ID' })
+  @ApiResponse({ status: 200, description: 'Project retrieved successfully.' })
   async findOne(@Param('id') id: string) {
     try {
       return await this.projectsService.findOne(id);
@@ -80,6 +134,12 @@ export class ProjectsController {
   }
 
   @Patch(':id')
+  @Roles(Role.ADMIN, Role.OWNER, Role.MANAGER)
+  @RequirePermission('canManageProjects')
+  @ApiOperation({ summary: 'Update project by ID' })
+  @ApiParam({ name: 'id', description: 'Project ID' })
+  @ApiBody({ type: UpdateProjectDto })
+  @ApiResponse({ status: 200, description: 'Project updated successfully.' })
   async update(
     @Param('id') id: string,
     @Body() updateProjectDto: UpdateProjectDto,
@@ -99,6 +159,11 @@ export class ProjectsController {
   }
 
   @Delete(':id')
+  @Roles(Role.ADMIN, Role.OWNER)
+  @RequirePermission('canArchiveProjects')
+  @ApiOperation({ summary: 'Delete project by ID' })
+  @ApiParam({ name: 'id', description: 'Project ID' })
+  @ApiResponse({ status: 200, description: 'Project deleted successfully.' })
   async remove(@Param('id') id: string) {
     try {
       return await this.projectsService.remove(id);
@@ -115,6 +180,12 @@ export class ProjectsController {
   }
 
   @Post(':id/members/:userId')
+  @Roles(Role.ADMIN, Role.OWNER, Role.MANAGER)
+  @RequirePermission('canManageProjects')
+  @ApiOperation({ summary: 'Add member to project' })
+  @ApiParam({ name: 'id', description: 'Project ID' })
+  @ApiParam({ name: 'userId', description: 'User ID to add as member' })
+  @ApiResponse({ status: 200, description: 'Member added successfully.' })
   async addMember(@Param('id') id: string, @Param('userId') userId: string) {
     try {
       return await this.projectsService.addMember(id, userId);
@@ -131,6 +202,13 @@ export class ProjectsController {
   }
 
   @Delete(':id/members/:userId')
+  @Roles(Role.ADMIN, Role.OWNER, Role.MANAGER)
+  @RequirePermission('canManageProjects')
+  @ApiOperation({ summary: 'Remove member from project' })
+  @ApiParam({ name: 'id', description: 'Project ID' })
+  @ApiParam({ name: 'userId', description: 'User ID to remove from members' })
+  @ApiResponse({ status: 200, description: 'Member removed successfully.' })
+  @ApiResponse({ status: 400, description: 'Invalid operation.' })
   async removeMember(@Param('id') id: string, @Param('userId') userId: string) {
     try {
       return await this.projectsService.removeMember(id, userId);
@@ -147,6 +225,15 @@ export class ProjectsController {
   }
 
   @Patch(':id/settings')
+  @Roles(Role.ADMIN, Role.OWNER, Role.MANAGER)
+  @RequirePermission('canManageProjects')
+  @ApiOperation({ summary: 'Update project settings' })
+  @ApiParam({ name: 'id', description: 'Project ID' })
+  @ApiBody({ description: 'Project settings object' })
+  @ApiResponse({
+    status: 200,
+    description: 'Project settings updated successfully.',
+  })
   async updateSettings(@Param('id') id: string, @Body() settings: any) {
     try {
       return await this.projectsService.updateSettings(id, settings);

@@ -32,11 +32,6 @@ export class AuthorizationGuard implements CanActivate {
 
     const { user } = context.switchToHttp().getRequest();
 
-    // System admins have all access
-    if (user.isSystemAdmin) {
-      return true;
-    }
-
     // Check role-based access if required
     if (requiredRoles && requiredRoles.includes(user.role)) {
       return true;

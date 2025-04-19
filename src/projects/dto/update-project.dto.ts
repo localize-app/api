@@ -10,6 +10,8 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
+import { ProjectType } from '../entities/project.entity';
+import { LocaleCode } from 'src/common/enums/locale-code.enum';
 
 class UpdateProjectSettingsDto {
   @ApiProperty({
@@ -122,12 +124,12 @@ export class UpdateProjectDto {
 
   @ApiProperty({
     description: 'Type of project',
-    enum: ['website', 'webapp', 'mobile_app', 'desktop_app', 'other'],
+    enum: ProjectType,
     required: false,
   })
-  @IsEnum(['website', 'webapp', 'mobile_app', 'desktop_app', 'other'])
+  @IsEnum(ProjectType)
   @IsOptional()
-  projectType?: string;
+  projectType?: ProjectType;
 
   @ApiProperty({ description: 'Website URL (if applicable)', required: false })
   @IsUrl()
@@ -142,13 +144,14 @@ export class UpdateProjectDto {
   @ApiProperty({
     description: 'Array of supported locale codes',
     type: [String],
-    example: ['en-US', 'fr-CA'],
+    enum: LocaleCode,
+    example: [LocaleCode.EN_US, LocaleCode.FR_CA],
     required: false,
   })
   @IsArray()
-  @IsString({ each: true })
+  @IsEnum(LocaleCode, { each: true })
   @IsOptional()
-  supportedLocales?: string[];
+  supportedLocales?: LocaleCode[];
 
   @ApiProperty({ description: 'Is the project archived?', required: false })
   @IsBoolean()

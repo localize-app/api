@@ -32,7 +32,7 @@ export class CompaniesController {
   constructor(private readonly companiesService: CompaniesService) {}
 
   @Post()
-  @Roles(Role.ADMIN, Role.OWNER)
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Create a new company' })
   @ApiResponse({
     status: 201,
