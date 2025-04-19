@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, ClientSession } from 'mongoose';
+import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 
 import { CreateUserDto } from './dto/create-user.dto';
@@ -17,9 +17,6 @@ export class UsersService {
 
   // Create a new user
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const session = await this.userModel.db.startSession();
-    session.startTransaction();
-
     try {
       // If the request has a password, hash it before storing as passwordHash
       if (createUserDto?.password) {
@@ -40,21 +37,16 @@ export class UsersService {
           role: userRole,
         });
 
-        await newUser.save({ session });
-        await session.commitTransaction();
-        return newUser;
+        await newUser.save();
+        return newUser.toJSON();
       } else {
         const newUser = new this.userModel(createUserDto);
-        await newUser.save({ session });
-        await session.commitTransaction();
-        return newUser;
+        await newUser.save();
+        return newUser.toJSON();
       }
     } catch (error) {
-      await session.abortTransaction();
       this.logger.error(`Failed to create user: ${error.message}`, error.stack);
       throw error;
-    } finally {
-      session.endSession();
     }
   }
 
@@ -83,9 +75,6 @@ export class UsersService {
 
   // Update a user
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
-    const session = await this.userModel.db.startSession();
-    session.startTransaction();
-
     try {
       const updateData = { ...updateUserDto };
 
@@ -97,7 +86,7 @@ export class UsersService {
       }
 
       const updatedUser = await this.userModel
-        .findByIdAndUpdate(id, updateData, { new: true, session })
+        .findByIdAndUpdate(id, updateData, { new: true })
         .populate('company')
         .exec();
 
@@ -105,14 +94,10 @@ export class UsersService {
         throw new NotFoundException(`User with ID ${id} not found`);
       }
 
-      await session.commitTransaction();
       return updatedUser;
     } catch (error) {
-      await session.abortTransaction();
       this.logger.error(`Failed to update user: ${error.message}`, error.stack);
       throw error;
-    } finally {
-      session.endSession();
     }
   }
 
@@ -121,12 +106,9 @@ export class UsersService {
     id: string,
     permissions: Partial<UserPermissions>,
   ): Promise<User> {
-    const session = await this.userModel.db.startSession();
-    session.startTransaction();
-
     try {
       const updatedUser = await this.userModel
-        .findByIdAndUpdate(id, { permissions }, { new: true, session })
+        .findByIdAndUpdate(id, { permissions }, { new: true })
         .populate('company')
         .exec();
 
@@ -134,36 +116,21 @@ export class UsersService {
         throw new NotFoundException(`User with ID ${id} not found`);
       }
 
-      await session.commitTransaction();
       return updatedUser;
     } catch (error) {
-      await session.abortTransaction();
       this.logger.error(
         `Failed to update user permissions: ${error.message}`,
         error.stack,
       );
       throw error;
-    } finally {
-      session.endSession();
     }
   }
 
   // Update user company
-  async updateCompany(
-    id: string,
-    companyId: string,
-    session?: ClientSession,
-  ): Promise<User> {
-    const useProvidedSession = !!session;
-
-    if (!useProvidedSession) {
-      session = await this.userModel.db.startSession();
-      session.startTransaction();
-    }
-
+  async updateCompany(id: string, companyId: string): Promise<User> {
     try {
       const updatedUser = await this.userModel
-        .findByIdAndUpdate(id, { company: companyId }, { new: true, session })
+        .findByIdAndUpdate(id, { company: companyId }, { new: true })
         .populate('company')
         .exec();
 
@@ -171,48 +138,26 @@ export class UsersService {
         throw new NotFoundException(`User with ID ${id} not found`);
       }
 
-      if (!useProvidedSession) {
-        await session?.commitTransaction();
-      }
-
       return updatedUser;
     } catch (error) {
-      if (!useProvidedSession) {
-        await session?.abortTransaction();
-      }
       this.logger.error(
         `Failed to update user company: ${error.message}`,
         error.stack,
       );
       throw error;
-    } finally {
-      if (!useProvidedSession) {
-        session?.endSession();
-      }
     }
   }
 
   // Delete a user
   async remove(id: string): Promise<void> {
-    const session = await this.userModel.db.startSession();
-    session.startTransaction();
-
     try {
-      const result = await this.userModel
-        .findByIdAndDelete(id)
-        .session(session)
-        .exec();
+      const result = await this.userModel.findByIdAndDelete(id).exec();
       if (!result) {
         throw new NotFoundException(`User with ID ${id} not found`);
       }
-
-      await session.commitTransaction();
     } catch (error) {
-      await session.abortTransaction();
       this.logger.error(`Failed to delete user: ${error.message}`, error.stack);
       throw error;
-    } finally {
-      session.endSession();
     }
   }
 
