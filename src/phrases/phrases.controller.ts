@@ -17,6 +17,8 @@ import { UpdatePhraseDto } from './dto/update-phrase.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
 import { BatchOperationDto } from './dto/batch-operation.dto';
 import { AddTranslationDto } from 'src/glossary-terms/dto/add-translation.dto';
+import { Public } from 'src/auth/decorators/public.decorator';
+import { ExtractPhrasesDto } from './dto/extract-phrases.dto';
 
 @Controller('phrases')
 export class PhrasesController {
@@ -75,5 +77,13 @@ export class PhrasesController {
   @Post('batch')
   batchOperation(@Body() batchDto: BatchOperationDto) {
     return this.phrasesService.processBatch(batchDto);
+  }
+
+  @Post('/batch-extract')
+  @Public()
+  async extractPhrases(@Body() extractDto: ExtractPhrasesDto) {
+    console.log('extractDto', extractDto);
+
+    return this.phrasesService.batchExtract(extractDto);
   }
 }

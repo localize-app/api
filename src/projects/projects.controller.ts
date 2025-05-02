@@ -49,6 +49,8 @@ export class ProjectsController {
   })
   async create(@Body() createProjectDto: CreateProjectDto) {
     try {
+      console.log('Creating project:', createProjectDto);
+
       return await this.projectsService.create(createProjectDto);
     } catch (error) {
       this.logger.error(
@@ -99,6 +101,8 @@ export class ProjectsController {
   ) {
     try {
       const list = await this.projectsService.findAll(query);
+      console.log('Projects list:', list);
+
       res
         .status(HttpStatus.OK)
         .header('Content-Range', `projects 0-${list?.length}/${list?.length}`);

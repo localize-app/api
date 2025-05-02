@@ -18,6 +18,8 @@ export class AuthService {
   async validateUser(email: string, password: string): Promise<any> {
     try {
       const user = await this.usersService.findByEmail(email);
+      console.log('Validating user:', user);
+
       if (user && (await bcrypt.compare(password, user.passwordHash))) {
         // If the user entity doesn't have toObject method, use spread operator directly
         const { passwordHash, ...result } = user as any;
@@ -42,6 +44,8 @@ export class AuthService {
 
     await this.usersService.updateLastLogin(user.id);
 
+    console.log('User login:', user);
+
     return {
       user: {
         id: user.id,
@@ -51,6 +55,7 @@ export class AuthService {
         fullName: user.fullName,
         role: user.role,
         permissions: user.permissions,
+        company: user.company,
       },
       access_token: this.jwtService.sign(payload),
     };

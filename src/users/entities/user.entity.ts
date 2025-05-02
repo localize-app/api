@@ -36,7 +36,7 @@ export class User extends BaseEntity {
   lastLoginAt?: Date;
 
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Company' })
-  company: Company; // Changed from companies array to single company reference
+  company: Company;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

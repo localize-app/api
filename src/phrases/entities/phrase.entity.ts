@@ -5,6 +5,47 @@ import { Project } from 'src/projects/entities/project.entity';
 import { BaseEntity, baseSchemaOptions } from 'src/common/entities/base.entity';
 import { Translation, TranslationSchema } from './translation.entity';
 
+// Define a schema for location data
+@Schema({ _id: false })
+export class PhraseLocation {
+  @Prop({ required: true })
+  url: string;
+
+  @Prop()
+  path?: string;
+
+  @Prop()
+  context?: string;
+
+  @Prop()
+  element?: string;
+
+  @Prop({ type: Date, default: Date.now })
+  timestamp: Date;
+}
+
+export const PhraseLocationSchema =
+  SchemaFactory.createForClass(PhraseLocation);
+
+// Define a schema for occurrences data
+@Schema({ _id: false })
+export class PhraseOccurrences {
+  @Prop({ default: 1 })
+  count: number;
+
+  @Prop({ type: Date, default: Date.now })
+  firstSeen: Date;
+
+  @Prop({ type: Date, default: Date.now })
+  lastSeen: Date;
+
+  @Prop({ type: [PhraseLocationSchema], default: [] })
+  locations: PhraseLocation[];
+}
+
+export const PhraseOccurrencesSchema =
+  SchemaFactory.createForClass(PhraseOccurrences);
+
 export type PhraseDocument = HydratedDocument<Phrase>;
 
 export enum PhraseStatus {
@@ -43,7 +84,7 @@ export class Phrase extends BaseEntity {
   @Prop({ default: false })
   isArchived: boolean;
 
-  // This is the structured way to handle translations
+  // Translations handling remains the same
   @Prop({ type: Map, of: TranslationSchema, default: new Map() })
   translations: Map<string, Translation>;
 
@@ -58,6 +99,18 @@ export class Phrase extends BaseEntity {
 
   @Prop()
   screenshot?: string;
+
+  // New field for tracking occurrences
+  @Prop({ type: PhraseOccurrencesSchema, default: () => ({}) })
+  occurrences?: PhraseOccurrences;
+
+  // Optional field to store the source type (like 'react-app', 'angular', etc.)
+  @Prop()
+  sourceType?: string;
+
+  // Additional metadata field for future extensibility
+  @Prop({ type: mongoose.Schema.Types.Mixed })
+  metadata?: Record<string, any>;
 
   @Prop({ type: Date, default: Date.now })
   createdAt?: Date;
