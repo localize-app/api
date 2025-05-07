@@ -5,50 +5,39 @@ import {
   IsArray,
   IsEnum,
   IsBoolean,
+  IsUrl,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
-
-class UpdateTranslationDto {
-  @ApiProperty({ description: 'Translation text', required: false })
-  @IsString()
-  @IsOptional()
-  text?: string;
-
-  @ApiProperty({
-    description: 'Translation status',
-    enum: ['pending', 'approved', 'rejected', 'needs_review'],
-    required: false,
-  })
-  @IsEnum(['pending', 'approved', 'rejected', 'needs_review'])
-  @IsOptional()
-  status?: string;
-
-  @ApiProperty({
-    description: 'Was this translation done by a human?',
-    required: false,
-  })
-  @IsBoolean()
-  @IsOptional()
-  isHuman?: boolean;
-}
+import { PhraseStatus } from '../entities/phrase.entity';
+import { TranslationDto } from './translation.dto';
 
 export class UpdatePhraseDto {
   @ApiProperty({
     description: 'Phrase key (unique within the project)',
     required: false,
+    example: 'welcome_message_updated',
   })
   @IsString()
   @IsOptional()
   key?: string;
 
-  @ApiProperty({ description: 'Source text of the phrase', required: false })
+  @ApiProperty({
+    description: 'Source text of the phrase',
+    required: false,
+    example:
+      "You are the business's lone employee, resulting in an automatic saleability score of Red.",
+  })
   @IsString()
   @IsOptional()
   sourceText?: string;
 
-  @ApiProperty({ description: 'Context for the phrase', required: false })
+  @ApiProperty({
+    description: 'Context for the phrase',
+    required: false,
+    example: 'Business valuation results page',
+  })
   @IsString()
   @IsOptional()
   context?: string;
@@ -64,32 +53,47 @@ export class UpdatePhraseDto {
 
   @ApiProperty({
     description: 'Phrase status',
-    enum: ['published', 'pending', 'needs_review', 'rejected', 'archived'],
+    enum: PhraseStatus,
     required: false,
   })
-  @IsEnum(['published', 'pending', 'needs_review', 'rejected', 'archived'])
+  @IsEnum(PhraseStatus)
   @IsOptional()
-  status?: string;
+  status?: PhraseStatus;
 
-  @ApiProperty({ description: 'Is the phrase archived?', required: false })
+  @ApiProperty({
+    description: 'Is the phrase archived?',
+    required: false,
+  })
   @IsBoolean()
   @IsOptional()
   isArchived?: boolean;
 
   @ApiProperty({
     description: 'Translations for different locales',
-    type: () => UpdateTranslationDto,
+    type: Object,
+    additionalProperties: {
+      type: 'object',
+      $ref: '#/components/schemas/TranslationDto',
+    },
     required: false,
+    example: {
+      'fr-CA': {
+        text: "Vous êtes le seul employé de l'entreprise, ce qui entraîne un résultat de vendabilité automatique de Rouge.",
+        status: 'pending',
+        isHuman: true,
+      },
+    },
   })
   @IsOptional()
-  @ValidateNested({ each: true })
-  @Type(() => UpdateTranslationDto)
-  translations?: Record<string, UpdateTranslationDto>;
+  @ValidateNested()
+  @Type(() => TranslationDto)
+  translations?: Record<string, TranslationDto>;
 
   @ApiProperty({
     description: 'Array of tags for the phrase',
     type: [String],
     required: false,
+    example: ['homepage', 'business', 'valuation'],
   })
   @IsArray()
   @IsString({ each: true })
@@ -99,8 +103,9 @@ export class UpdatePhraseDto {
   @ApiProperty({
     description: 'Source URL where the phrase is used',
     required: false,
+    example: 'https://example.com/valuation/results',
   })
-  @IsString()
+  @IsUrl()
   @IsOptional()
   sourceUrl?: string;
 
@@ -108,7 +113,7 @@ export class UpdatePhraseDto {
     description: 'URL of a screenshot related to the phrase',
     required: false,
   })
-  @IsString()
+  @IsUrl()
   @IsOptional()
   screenshot?: string;
 }

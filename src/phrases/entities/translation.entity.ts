@@ -1,7 +1,7 @@
-// src/phrases/entities/translation.entity.ts
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import * as mongoose from 'mongoose';
-import { User } from 'src/users/entities/user.entity';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+
+import { User } from '../../users/entities/user.entity';
 
 export enum TranslationStatus {
   PENDING = 'pending',
@@ -20,7 +20,7 @@ export class Translation {
     default: TranslationStatus.PENDING,
     type: String,
   })
-  status: string;
+  status: TranslationStatus;
 
   @Prop({ default: true })
   isHuman: boolean;

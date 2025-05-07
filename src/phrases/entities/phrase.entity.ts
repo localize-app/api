@@ -1,8 +1,12 @@
 import * as mongoose from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
-import { Project } from 'src/projects/entities/project.entity';
-import { BaseEntity, baseSchemaOptions } from 'src/common/entities/base.entity';
+
+import { Project } from '../../projects/entities/project.entity';
+import {
+  BaseEntity,
+  baseSchemaOptions,
+} from '../../common/entities/base.entity';
 import { Translation, TranslationSchema } from './translation.entity';
 
 // Define a schema for location data
@@ -79,12 +83,12 @@ export class Phrase extends BaseEntity {
     default: PhraseStatus.PENDING,
     type: String,
   })
-  status: string;
+  status: PhraseStatus;
 
   @Prop({ default: false })
   isArchived: boolean;
 
-  // Translations handling remains the same
+  // Translations as a Map: locale code -> Translation
   @Prop({ type: Map, of: TranslationSchema, default: new Map() })
   translations: Map<string, Translation>;
 
@@ -100,15 +104,15 @@ export class Phrase extends BaseEntity {
   @Prop()
   screenshot?: string;
 
-  // New field for tracking occurrences
+  // Tracking occurrences
   @Prop({ type: PhraseOccurrencesSchema, default: () => ({}) })
   occurrences?: PhraseOccurrences;
 
-  // Optional field to store the source type (like 'react-app', 'angular', etc.)
+  // Source type (like 'react-app', 'angular', etc.)
   @Prop()
   sourceType?: string;
 
-  // Additional metadata field for future extensibility
+  // Additional metadata for future extensibility
   @Prop({ type: mongoose.Schema.Types.Mixed })
   metadata?: Record<string, any>;
 

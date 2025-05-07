@@ -1,12 +1,21 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsEnum } from 'class-validator';
+import { IsEnum, IsNotEmpty } from 'class-validator';
+
+export enum PhraseStatus {
+  PUBLISHED = 'published',
+  PENDING = 'pending',
+  NEEDS_REVIEW = 'needs_review',
+  REJECTED = 'rejected',
+  ARCHIVED = 'archived',
+}
 
 export class UpdateStatusDto {
   @ApiProperty({
-    description: 'New status for the item',
-    enum: ['published', 'pending', 'needs_review', 'rejected', 'archived'],
+    description: 'New status for the phrase',
+    enum: PhraseStatus,
+    example: PhraseStatus.PUBLISHED,
   })
-  @IsEnum(['published', 'pending', 'needs_review', 'rejected', 'archived'])
+  @IsEnum(PhraseStatus)
   @IsNotEmpty()
-  status: string;
+  status: PhraseStatus;
 }

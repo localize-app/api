@@ -10,6 +10,14 @@ import {
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
+export enum BatchOperation {
+  PUBLISH = 'publish',
+  ARCHIVE = 'archive',
+  DELETE = 'delete',
+  TAG = 'tag',
+  UNTAG = 'untag',
+}
+
 class BatchItemDto {
   @ApiProperty({ description: 'Item ID', format: 'ObjectId' })
   @IsMongoId()
@@ -20,11 +28,12 @@ class BatchItemDto {
 export class BatchOperationDto {
   @ApiProperty({
     description: 'Operation to perform',
-    enum: ['publish', 'archive', 'delete', 'tag', 'untag'],
+    enum: BatchOperation,
+    example: BatchOperation.PUBLISH,
   })
-  @IsEnum(['publish', 'archive', 'delete', 'tag', 'untag'])
+  @IsEnum(BatchOperation)
   @IsNotEmpty()
-  operation: string;
+  operation: BatchOperation;
 
   @ApiProperty({
     description: 'Array of items to operate on',
@@ -38,6 +47,7 @@ export class BatchOperationDto {
   @ApiProperty({
     description: 'Tag value (for tag/untag operations)',
     required: false,
+    example: 'homepage',
   })
   @IsOptional()
   @IsString()
