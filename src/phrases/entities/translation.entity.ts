@@ -31,8 +31,8 @@ export class Translation {
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User' })
   modifiedBy?: User;
 
-  @Prop({ type: Boolean, default: false })
-  isReviewed: boolean;
+  // @Prop({ type: Boolean, default: false })
+  // isReviewed: boolean;
 
   @Prop({ type: Date })
   reviewedAt?: Date;

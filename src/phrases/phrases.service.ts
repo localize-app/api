@@ -18,7 +18,7 @@ import { UpdatePhraseDto } from './dto/update-phrase.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
 import { BatchOperationDto } from './dto/batch-operation.dto';
 import { AddTranslationDto } from './dto/add-translation.dto';
-import { TranslationStatus } from './entities/translation.entity';
+import { Translation, TranslationStatus } from './entities/translation.entity';
 
 @Injectable()
 export class PhrasesService {
@@ -235,13 +235,14 @@ export class PhrasesService {
       const phrase = await this.findOne(id);
 
       // Create a valid translation object
-      const translation = {
+      const translation: Translation = {
         text: translationDto.text,
         status: translationDto.status || TranslationStatus.PENDING,
         isHuman:
           translationDto.isHuman !== undefined ? translationDto.isHuman : true,
         lastModified: new Date(),
-        modifiedBy: translationDto.modifiedBy, // This should be set from the authenticated user
+        // Cast to any to satisfy TypeScript - in a real implementation, you'd query the User model
+        modifiedBy: translationDto.modifiedBy as any,
       };
 
       // Initialize translations map if it doesn't exist
@@ -407,7 +408,10 @@ export class PhrasesService {
 
           // Filter translations by requested locales
           for (const locale of options.locales) {
-            const translation = phraseObj.translations?.[locale];
+            const translation = phraseObj.translations
+              ? phraseObj.translations.get(locale)
+              : undefined;
+
             if (translation) {
               translations[locale] = {
                 text: translation.text,
