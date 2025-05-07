@@ -61,6 +61,9 @@ export class ProjectsService {
       .limit(+limit)
       .populate('company')
       .populate('members')
+      .populate('phraseCount')
+      .populate('pendingPhraseCount')
+      .populate('publishedPhraseCount')
       .exec();
   }
 
@@ -69,6 +72,10 @@ export class ProjectsService {
       .findById(id)
       .populate('company')
       .populate('members')
+      .populate('phraseCount')
+      .populate('pendingPhraseCount')
+      .populate('publishedPhraseCount')
+
       .exec();
 
     if (!project) {
