@@ -18,6 +18,7 @@ import { ActivitiesModule } from './activities/activities.module';
 import { StyleGuidesModule } from './style-guides/style-guides.module';
 import { GlossaryTermsModule } from './glossary-terms/glossary-terms.module';
 import { AuthorizationGuard } from './auth/guards/auth.guard';
+import { TranslationsModule } from './translations/translations.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { AuthorizationGuard } from './auth/guards/auth.guard';
     // IntegrationsModule,
     StyleGuidesModule,
     GlossaryTermsModule,
+    TranslationsModule,
   ],
   controllers: [],
   providers: [
