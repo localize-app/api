@@ -13,15 +13,27 @@ import {
 @Injectable()
 export class LibreTranslateProvider implements TranslationProvider {
   private readonly logger = new Logger(LibreTranslateProvider.name);
-  private readonly baseUrl: string;
+  private readonly baseUrls: string[];
   private readonly apiKey?: string;
+  private currentUrlIndex = 0;
 
   constructor(private configService: ConfigService) {
-    // Use public LibreTranslate instance or your own
-    this.baseUrl =
-      this.configService.get<string>('LIBRE_TRANSLATE_URL') ||
-      'https://libretranslate.de';
+    // Multiple LibreTranslate instances for redundancy
+    const customUrl = this.configService.get<string>('LIBRE_TRANSLATE_URL');
+    this.baseUrls = customUrl
+      ? [customUrl]
+      : [
+          'https://libretranslate.com', // Official instance
+          'https://translate.argosopentech.com', // Alternative instance
+          'https://libretranslate.de', // German instance
+          'https://translate.mentality.rip', // Community instance
+        ];
+
     this.apiKey = this.configService.get<string>('LIBRE_TRANSLATE_API_KEY');
+
+    this.logger.log(
+      `Initialized with ${this.baseUrls.length} LibreTranslate instances`,
+    );
   }
 
   getName(): string {
@@ -29,63 +41,137 @@ export class LibreTranslateProvider implements TranslationProvider {
   }
 
   isAvailable(): boolean {
-    return !!this.baseUrl;
+    return this.baseUrls.length > 0;
   }
 
   async translateText(
     request: TranslationRequest,
   ): Promise<TranslationResponse> {
-    try {
-      const sourceLang = this.normalizeLanguageCode(request.sourceLanguage);
-      const targetLang = this.normalizeLanguageCode(request.targetLanguage);
+    const sourceLang = this.normalizeLanguageCode(request.sourceLanguage);
+    const targetLang = this.normalizeLanguageCode(request.targetLanguage);
 
-      const payload: any = {
-        q: request.text,
-        source: sourceLang,
-        target: targetLang,
+    // Try each instance until one works
+    // for (let attempt = 0; attempt < this.baseUrls.length; attempt++) {
+    //   const baseUrl = this.baseUrls[this.currentUrlIndex];
+
+    //   try {
+    //     const payload: any = {
+    //       q: request.text,
+    //       source: sourceLang,
+    //       target: targetLang,
+    //       format: 'text',
+    //     };
+
+    //     // Add API key if available
+    //     if (this.apiKey) {
+    //       payload.api_key = this.apiKey;
+    //     }
+
+    //     this.logger.debug(`Attempting translation with ${baseUrl}`);
+
+    //     const response = await axios.post(`${baseUrl}/translate`, payload, {
+    //       headers: {
+    //         'Content-Type': 'application/json',
+    //         'User-Agent': 'LocalizationApp/1.0',
+    //       },
+    //       timeout: 15000, // Increased timeout
+    //       validateStatus: (status) => status < 500, // Don't throw on 4xx errors
+    //     });
+
+    //     if (response.status === 200 && response.data?.translatedText) {
+    //       this.logger.debug(`Translation successful with ${baseUrl}`);
+    //       return {
+    //         translatedText: response.data.translatedText,
+    //         provider: `${this.getName()} (${baseUrl})`,
+    //       };
+    //     }
+
+    //     if (response.status === 429) {
+    //       this.logger.warn(`Rate limited by ${baseUrl}, trying next instance`);
+    //       this.rotateToNextInstance();
+    //       continue;
+    //     }
+
+    //     if (response.status >= 400) {
+    //       this.logger.warn(
+    //         `HTTP ${response.status} from ${baseUrl}: ${response.data?.error || 'Unknown error'}`,
+    //       );
+    //       this.rotateToNextInstance();
+    //       continue;
+    //     }
+
+    //     throw new Error('Invalid response format');
+    //   } catch (error) {
+    //     console.log(error);
+
+    //     this.logger.warn(
+    //       `LibreTranslate instance ${baseUrl} failed: ${error.message}`,
+    //     );
+
+    //     // Rotate to next instance for subsequent requests
+    //     this.rotateToNextInstance();
+
+    //     // If this is the last attempt, throw the error
+    //     if (attempt === this.baseUrls.length - 1) {
+    //       throw new Error(
+    //         `All LibreTranslate instances failed. Last error: ${error.message}`,
+    //       );
+    //     }
+    //   }
+    // }
+
+    const res = await fetch('https://libretranslate.com/translate', {
+      method: 'POST',
+      body: JSON.stringify({
+        q: '',
+        source: 'auto',
+        target: 'en',
         format: 'text',
-      };
+        alternatives: 3,
+        api_key: '',
+      }),
+      headers: { 'Content-Type': 'application/json' },
+    });
 
-      // Add API key if available
-      if (this.apiKey) {
-        payload.api_key = this.apiKey;
-      }
+    console.log(await res.json());
 
-      const response = await axios.post(`${this.baseUrl}/translate`, payload, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        timeout: 10000, // 10 seconds timeout
-      });
-
-      return {
-        translatedText: response.data.translatedText,
-        provider: this.getName(),
-      };
-    } catch (error) {
-      this.logger.error(`LibreTranslate error: ${error.message}`, error.stack);
-      throw new Error(`LibreTranslate translation failed: ${error.message}`);
-    }
+    throw new Error('No LibreTranslate instances available');
   }
 
   async translateBatch(
     request: BatchTranslationRequest,
   ): Promise<BatchTranslationResponse> {
-    // LibreTranslate doesn't have native batch support, so we'll do sequential requests
     const translations: string[] = [];
+    const maxConcurrent = 3; // Limit concurrent requests
 
-    for (const text of request.texts) {
-      try {
-        const result = await this.translateText({
-          text,
-          sourceLanguage: request.sourceLanguage,
-          targetLanguage: request.targetLanguage,
-        });
-        translations.push(result.translatedText);
-      } catch (error) {
-        this.logger.error(`Batch translation failed for text: ${text}`, error);
-        translations.push(text); // Fallback to original text
-      }
+    // Process in chunks to avoid overwhelming the service
+    for (let i = 0; i < request.texts.length; i += maxConcurrent) {
+      const chunk = request.texts.slice(i, i + maxConcurrent);
+
+      const chunkPromises = chunk.map(async (text, index) => {
+        try {
+          // Add small delay between requests
+          if (index > 0) {
+            await new Promise((resolve) => setTimeout(resolve, 200));
+          }
+
+          const result = await this.translateText({
+            text,
+            sourceLanguage: request.sourceLanguage,
+            targetLanguage: request.targetLanguage,
+          });
+          return result.translatedText;
+        } catch (error) {
+          this.logger.error(
+            `Batch translation failed for text: ${text}`,
+            error,
+          );
+          return text; // Fallback to original text
+        }
+      });
+
+      const chunkResults = await Promise.all(chunkPromises);
+      translations.push(...chunkResults);
     }
 
     return {
@@ -95,37 +181,51 @@ export class LibreTranslateProvider implements TranslationProvider {
   }
 
   getSupportedLanguages(): string[] {
-    // LibreTranslate supported languages (as of 2024)
+    // Updated list of LibreTranslate supported languages
     return [
       'ar',
       'az',
+      'bg',
       'ca',
-      'zh',
       'cs',
       'da',
-      'nl',
-      'en',
-      'eo',
-      'fi',
-      'fr',
       'de',
       'el',
+      'en',
+      'eo',
+      'es',
+      'et',
+      'fa',
+      'fi',
+      'fr',
+      'ga',
+      'he',
       'hi',
+      'hr',
       'hu',
       'id',
-      'ga',
       'it',
       'ja',
       'ko',
-      'fa',
+      'lt',
+      'lv',
+      'ms',
+      'mt',
+      'nl',
+      'no',
       'pl',
       'pt',
+      'ro',
       'ru',
       'sk',
-      'es',
+      'sl',
+      'sq',
       'sv',
+      'th',
       'tr',
       'uk',
+      'vi',
+      'zh',
     ];
   }
 
@@ -135,6 +235,53 @@ export class LibreTranslateProvider implements TranslationProvider {
 
   private normalizeLanguageCode(locale: string): string {
     // Convert locale codes like 'en-US' to 'en'
-    return locale.split('-')[0].toLowerCase();
+    const baseCode = locale.split('-')[0].toLowerCase();
+
+    // Handle special cases
+    const mapping: Record<string, string> = {
+      'zh-cn': 'zh',
+      'zh-tw': 'zh',
+      'zh-hans': 'zh',
+      'zh-hant': 'zh',
+    };
+
+    return mapping[locale.toLowerCase()] || baseCode;
+  }
+
+  private rotateToNextInstance(): void {
+    this.currentUrlIndex = (this.currentUrlIndex + 1) % this.baseUrls.length;
+  }
+
+  // Health check method for monitoring
+  async healthCheck(): Promise<
+    { url: string; healthy: boolean; responseTime?: number }[]
+  > {
+    const results: { url: string; healthy: boolean; responseTime?: number }[] =
+      [];
+
+    for (const baseUrl of this.baseUrls) {
+      const startTime = Date.now();
+      try {
+        const response = await axios.get(`${baseUrl}/languages`, {
+          timeout: 5000,
+          validateStatus: (status) => status < 500,
+        });
+
+        const responseTime = Date.now() - startTime;
+        results.push({
+          url: baseUrl,
+          healthy: response.status === 200,
+          responseTime,
+        });
+      } catch (error) {
+        results.push({
+          url: baseUrl,
+          healthy: false,
+        });
+        console.error(error);
+      }
+    }
+
+    return results;
   }
 }

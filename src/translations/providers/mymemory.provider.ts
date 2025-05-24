@@ -15,20 +15,33 @@ export class MyMemoryProvider implements TranslationProvider {
   private readonly baseUrl = 'https://api.mymemory.translated.net';
   private readonly dailyLimit = 10000; // MyMemory free daily limit
 
+  constructor() {
+    this.logger.log('MyMemoryProvider instantiated');
+    this.logger.log(`Base URL: ${this.baseUrl}`);
+    this.logger.log(`Daily limit: ${this.dailyLimit}`);
+  }
+
   getName(): string {
     return 'MyMemory';
   }
 
   isAvailable(): boolean {
+    this.logger.log('Checking MyMemory availability - always returns true');
     return true; // Always available as it's free
   }
 
   async translateText(
     request: TranslationRequest,
   ): Promise<TranslationResponse> {
+    this.logger.log(
+      `Translating: "${request.text}" from ${request.sourceLanguage} to ${request.targetLanguage}`,
+    );
+
     try {
       const sourceLang = this.normalizeLanguageCode(request.sourceLanguage);
       const targetLang = this.normalizeLanguageCode(request.targetLanguage);
+
+      this.logger.log(`Normalized languages: ${sourceLang} -> ${targetLang}`);
 
       const response = await axios.get(`${this.baseUrl}/get`, {
         params: {
@@ -38,12 +51,17 @@ export class MyMemoryProvider implements TranslationProvider {
         timeout: 10000,
       });
 
+      this.logger.log(`MyMemory API response status: ${response.status}`);
+
       if (response.data && response.data.responseData) {
-        return {
+        const result = {
           translatedText: response.data.responseData.translatedText,
           confidence: response.data.responseData.match,
           provider: this.getName(),
         };
+
+        this.logger.log(`Translation successful: "${result.translatedText}"`);
+        return result;
       }
 
       throw new Error('Invalid response from MyMemory API');
@@ -56,11 +74,17 @@ export class MyMemoryProvider implements TranslationProvider {
   async translateBatch(
     request: BatchTranslationRequest,
   ): Promise<BatchTranslationResponse> {
+    this.logger.log(`Batch translating ${request.texts.length} texts`);
+
     const translations: string[] = [];
 
     // Add small delay between requests to respect rate limits
     for (let i = 0; i < request.texts.length; i++) {
       try {
+        this.logger.log(
+          `Translating batch item ${i + 1}/${request.texts.length}`,
+        );
+
         const result = await this.translateText({
           text: request.texts[i],
           sourceLanguage: request.sourceLanguage,
@@ -81,6 +105,10 @@ export class MyMemoryProvider implements TranslationProvider {
       }
     }
 
+    this.logger.log(
+      `Batch translation completed: ${translations.length} results`,
+    );
+
     return {
       translatedTexts: translations,
       provider: this.getName(),
@@ -88,7 +116,7 @@ export class MyMemoryProvider implements TranslationProvider {
   }
 
   getSupportedLanguages(): string[] {
-    return [
+    const languages = [
       'ar',
       'bg',
       'ca',
@@ -127,6 +155,9 @@ export class MyMemoryProvider implements TranslationProvider {
       'uk',
       'vi',
     ];
+
+    this.logger.log(`MyMemory supports ${languages.length} languages`);
+    return languages;
   }
 
   getMaxTextLength(): number {
@@ -143,6 +174,9 @@ export class MyMemoryProvider implements TranslationProvider {
     };
 
     const normalized = locale.toLowerCase();
-    return mapping[locale] || normalized.split('-')[0];
+    const result = mapping[locale] || normalized.split('-')[0];
+
+    this.logger.log(`Normalized language code: ${locale} -> ${result}`);
+    return result;
   }
 }
