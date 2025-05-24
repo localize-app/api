@@ -1,63 +1,55 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-import axios from 'axios';
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { TranslationFactoryService } from './translation-factory.service';
+import { TranslationProviderType } from './enums/translation-provider.enum';
 
 @Injectable()
 export class TranslationsService {
   private readonly logger = new Logger(TranslationsService.name);
-  private readonly apiKey: string;
-  private readonly translationEndpoint: string =
-    'https://translation.googleapis.com/language/translate/v2';
 
-  constructor(private configService: ConfigService) {
-    // @ts-ignore
-    this.apiKey = this.configService.get<string>('GOOGLE_TRANSLATE_API_KEY');
-    if (!this.apiKey) {
-      this.logger.warn(
-        'GOOGLE_TRANSLATE_API_KEY not set, machine translation will not work',
-      );
-    }
-  }
+  constructor(private translationFactory: TranslationFactoryService) {}
 
   async translateText(
     text: string,
     targetLanguage: string,
-    sourceLanguage: string = 'en',
-  ): Promise<string> {
+    sourceLanguage: string = 'en-US',
+    providerType?: TranslationProviderType,
+  ): Promise<{ translatedText: string; provider: string }> {
     try {
-      // Handle empty text
       if (!text.trim()) {
-        return '';
+        return { translatedText: '', provider: 'none' };
       }
 
-      // Convert locale format (e.g., 'en-US' to 'en')
-      const sourceLang = sourceLanguage.split('-')[0];
-      const targetLang = targetLanguage.split('-')[0];
+      // Get the appropriate provider
+      const provider = providerType
+        ? this.translationFactory.getProvider(providerType)
+        : await this.translationFactory.getBestProviderForLanguagePair(
+            sourceLanguage,
+            targetLanguage,
+          );
 
-      const response = await axios.post(
-        `${this.translationEndpoint}?key=${this.apiKey}`,
-        {
-          q: text,
-          source: sourceLang,
-          target: targetLang,
-          format: 'text',
-        },
+      // Check text length limit
+      if (text.length > provider.getMaxTextLength()) {
+        throw new BadRequestException(
+          `Text too long for ${provider.getName()}. Maximum length: ${provider.getMaxTextLength()}`,
+        );
+      }
+
+      const result = await provider.translateText({
+        text,
+        sourceLanguage,
+        targetLanguage,
+      });
+
+      this.logger.log(
+        `Translated text using ${result.provider}: "${text}" -> "${result.translatedText}"`,
       );
-      console.log(`Response: ${JSON.stringify(response.data)}`);
 
-      if (
-        response.data &&
-        response.data.data &&
-        response.data.data.translations &&
-        response.data.data.translations.length > 0
-      ) {
-        return response.data.data.translations[0].translatedText;
-      }
-
-      throw new Error('No translation returned from API');
+      return {
+        translatedText: result.translatedText,
+        provider: result.provider,
+      };
     } catch (error) {
-      this.logger.error(`Translation error: ${error.message}`, error.stack);
+      this.logger.error(`Translation failed: ${error.message}`, error.stack);
       throw error;
     }
   }
@@ -65,44 +57,55 @@ export class TranslationsService {
   async translateBatch(
     texts: string[],
     targetLanguage: string,
-    sourceLanguage: string = 'en',
-  ): Promise<string[]> {
+    sourceLanguage: string = 'en-US',
+    providerType?: TranslationProviderType,
+  ): Promise<{ translatedTexts: string[]; provider: string }> {
     try {
       if (texts.length === 0) {
-        return [];
+        return { translatedTexts: [], provider: 'none' };
       }
 
-      // Convert locale format
-      const sourceLang = sourceLanguage.split('-')[0];
-      const targetLang = targetLanguage.split('-')[0];
+      // Get the appropriate provider
+      const provider = providerType
+        ? this.translationFactory.getProvider(providerType)
+        : await this.translationFactory.getBestProviderForLanguagePair(
+            sourceLanguage,
+            targetLanguage,
+          );
 
-      const response = await axios.post(
-        `${this.translationEndpoint}?key=${this.apiKey}`,
-        {
-          q: texts,
-          source: sourceLang,
-          target: targetLang,
-          format: 'text',
-        },
-      );
-
-      if (
-        response.data &&
-        response.data.data &&
-        response.data.data.translations
-      ) {
-        return response.data.data.translations.map(
-          (t: any) => t.translatedText,
+      // Check if any text exceeds length limit
+      const maxLength = provider.getMaxTextLength();
+      const longTexts = texts.filter((text) => text.length > maxLength);
+      if (longTexts.length > 0) {
+        throw new BadRequestException(
+          `Some texts are too long for ${provider.getName()}. Maximum length: ${maxLength}`,
         );
       }
 
-      throw new Error('No translations returned from API');
+      const result = await provider.translateBatch({
+        texts,
+        sourceLanguage,
+        targetLanguage,
+      });
+
+      this.logger.log(
+        `Batch translated ${texts.length} texts using ${result.provider}`,
+      );
+
+      return {
+        translatedTexts: result.translatedTexts,
+        provider: result.provider,
+      };
     } catch (error) {
       this.logger.error(
-        `Batch translation error: ${error.message}`,
+        `Batch translation failed: ${error.message}`,
         error.stack,
       );
       throw error;
     }
+  }
+
+  getAvailableProviders() {
+    return this.translationFactory.getAvailableProviders();
   }
 }

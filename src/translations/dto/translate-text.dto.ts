@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsEnum } from 'class-validator';
+import { TranslationProviderType } from '../enums/translation-provider.enum';
 
 export class TranslateTextDto {
   @ApiProperty({
@@ -26,4 +27,14 @@ export class TranslateTextDto {
   @IsString()
   @IsOptional()
   sourceLanguage?: string = 'en-US';
+
+  @ApiProperty({
+    description: 'Translation provider to use',
+    enum: TranslationProviderType,
+    required: false,
+    example: TranslationProviderType.LIBRE_TRANSLATE,
+  })
+  @IsEnum(TranslationProviderType)
+  @IsOptional()
+  provider?: TranslationProviderType;
 }
