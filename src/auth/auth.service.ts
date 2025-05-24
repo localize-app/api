@@ -18,7 +18,6 @@ export class AuthService {
   async validateUser(email: string, password: string): Promise<any> {
     try {
       const user = await this.usersService.findByEmail(email);
-      console.log('Validating user:', user);
 
       if (user && (await bcrypt.compare(password, user.passwordHash))) {
         // If the user entity doesn't have toObject method, use spread operator directly
@@ -43,8 +42,6 @@ export class AuthService {
     };
 
     await this.usersService.updateLastLogin(user.id);
-
-    console.log('User login:', user);
 
     return {
       user: {

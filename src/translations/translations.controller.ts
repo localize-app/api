@@ -1,3 +1,4 @@
+// src/translations/translations.controller.ts
 import { Controller, Post, Body, UseGuards, Get } from '@nestjs/common';
 import {
   ApiTags,
@@ -10,7 +11,13 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TranslationsService } from './translations.service';
 import { TranslateTextDto } from './dto/translate-text.dto';
-import { TranslateBatchDto } from './dto/translate-batch.dto';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { RequirePermission } from '../auth/decorators/permission.decorator';
+import { Role } from '../common/enums/role.enum';
+import {
+  BatchTranslationResultDto,
+  TranslateBatchPhrasesDto,
+} from './dto/translate-batch.dto';
 
 @ApiTags('Translation')
 @ApiBearerAuth()
@@ -87,52 +94,19 @@ export class TranslationsController {
     };
   }
 
-  @Post('batch')
-  @ApiOperation({ summary: 'Translate multiple texts to target language' })
-  @ApiBody({ type: TranslateBatchDto })
+  @Post('phrases/batch')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.MEMBER, Role.TRANSLATOR)
+  @RequirePermission('canTranslate')
+  @ApiOperation({ summary: 'Translate multiple phrases and save to database' })
+  @ApiBody({ type: TranslateBatchPhrasesDto })
   @ApiResponse({
     status: 200,
-    description: 'Successfully translated texts',
-    schema: {
-      type: 'object',
-      properties: {
-        translatedTexts: {
-          type: 'array',
-          items: { type: 'string' },
-        },
-        provider: { type: 'string' },
-        sourceTexts: {
-          type: 'array',
-          items: { type: 'string' },
-        },
-        sourceLanguage: { type: 'string' },
-        targetLanguage: { type: 'string' },
-        count: { type: 'number' },
-      },
-    },
+    description: 'Successfully processed batch translation',
+    type: BatchTranslationResultDto,
   })
-  async translateBatch(@Body() translateDto: TranslateBatchDto): Promise<{
-    translatedTexts: string[];
-    provider: string;
-    sourceTexts: string[];
-    sourceLanguage: string;
-    targetLanguage: string;
-    count: number;
-  }> {
-    const result = await this.translationService.translateBatch(
-      translateDto.texts,
-      translateDto.targetLanguage,
-      translateDto.sourceLanguage,
-      translateDto.provider,
-    );
-
-    return {
-      translatedTexts: result.translatedTexts,
-      provider: result.provider,
-      sourceTexts: translateDto.texts,
-      sourceLanguage: translateDto.sourceLanguage || 'en-US',
-      targetLanguage: translateDto.targetLanguage,
-      count: result.translatedTexts.length,
-    };
+  async translateBatchPhrases(
+    @Body() translateDto: TranslateBatchPhrasesDto,
+  ): Promise<BatchTranslationResultDto> {
+    return this.translationService.translateBatchPhrases(translateDto);
   }
 }
