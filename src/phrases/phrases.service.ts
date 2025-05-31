@@ -15,7 +15,7 @@ import { Phrase, PhraseDocument } from './entities/phrase.entity';
 import { Project, ProjectDocument } from '../projects/entities/project.entity';
 import { CreatePhraseDto } from './dto/create-phrase.dto';
 import { UpdatePhraseDto } from './dto/update-phrase.dto';
-import { UpdateStatusDto } from './dto/update-status.dto';
+import { PhraseStatus, UpdateStatusDto } from './dto/update-status.dto';
 import { BatchOperationDto } from './dto/batch-operation.dto';
 import { AddTranslationDto } from './dto/add-translation.dto';
 import { Translation, TranslationStatus } from './entities/translation.entity';
@@ -78,7 +78,8 @@ export class PhrasesService {
   ): Promise<{ phrases: Phrase[]; total: number }> {
     const {
       project,
-      status,
+      translationStatus, // NEW: Filter by translation status
+      locale, // NEW: Filter by specific locale
       isArchived,
       search,
       tags,
@@ -91,10 +92,6 @@ export class PhrasesService {
 
     if (project) {
       filter.project = project;
-    }
-
-    if (status) {
-      filter.status = status;
     }
 
     if (isArchived !== undefined) {
@@ -114,6 +111,11 @@ export class PhrasesService {
       filter.tags = { $all: tagArray };
     }
 
+    // NEW: Filter by translation status for a specific locale
+    if (translationStatus && locale) {
+      filter[`translations.${locale}.status`] = translationStatus;
+    }
+
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
 
     // Get total count
@@ -122,7 +124,7 @@ export class PhrasesService {
     // Get paginated results
     const phrases = await this.phraseModel
       .find(filter)
-      .sort({ updatedAt: -1 }) // Most recent first
+      .sort({ updatedAt: -1 })
       .skip(skip)
       .limit(parseInt(limit as string))
       .populate('project')
@@ -295,8 +297,51 @@ export class PhrasesService {
   }
 
   /**
+   * Publish a single phrase
+   */
+  async publishPhrase(id: string): Promise<Phrase> {
+    try {
+      const phrase = await this.findOne(id);
+
+      // Validate that phrase has at least one translation
+      if (!phrase.translations || phrase.translations.size === 0) {
+        throw new BadRequestException(
+          'Cannot publish phrase without any translations',
+        );
+      }
+
+      const updatedPhrase = await this.phraseModel
+        .findByIdAndUpdate(
+          id,
+          {
+            status: PhraseStatus.PUBLISHED,
+            updatedAt: new Date(),
+          },
+          { new: true },
+        )
+        .populate('project')
+        .exec();
+
+      if (!updatedPhrase) {
+        throw new NotFoundException(`Phrase with ID ${id} not found`);
+      }
+
+      this.logger.log(`Successfully published phrase ${id}`);
+      return updatedPhrase;
+    } catch (error) {
+      this.logger.error(
+        `Failed to publish phrase ${id}: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Process batch operations on phrases
    */
+  // Updated batch operation to work with translation status
+  // Updated batch operation to work with translation status
   async processBatch(
     batchDto: BatchOperationDto,
   ): Promise<{ success: boolean; count: number }> {
@@ -304,10 +349,48 @@ export class PhrasesService {
       const ids = batchDto.items.map((item) => item.id);
 
       switch (batchDto.operation) {
-        case 'publish':
-          await this.phraseModel
-            .updateMany({ _id: { $in: ids } }, { status: 'published' })
-            .exec();
+        case 'approve_translations':
+          // NEW: Approve all translations for specific locale
+          if ((batchDto as any).locale) {
+            const locale = (batchDto as any).locale;
+            const phrases = await this.phraseModel
+              .find({ _id: { $in: ids } })
+              .exec();
+
+            for (const phrase of phrases) {
+              if (phrase.translations && phrase.translations.has(locale)) {
+                const translation = phrase.translations.get(locale);
+                if (translation) {
+                  translation.status = TranslationStatus.APPROVED;
+                  translation.reviewedAt = new Date();
+                  phrase.translations.set(locale, translation);
+                  await phrase.save();
+                }
+              }
+            }
+          }
+          break;
+
+        case 'reject_translations':
+          // NEW: Reject all translations for specific locale
+          if ((batchDto as any).locale) {
+            const locale = (batchDto as any).locale;
+            const phrases = await this.phraseModel
+              .find({ _id: { $in: ids } })
+              .exec();
+
+            for (const phrase of phrases) {
+              if (phrase.translations && phrase.translations.has(locale)) {
+                const translation = phrase.translations.get(locale);
+                if (translation) {
+                  translation.status = TranslationStatus.REJECTED;
+                  translation.reviewedAt = new Date();
+                  phrase.translations.set(locale, translation);
+                  await phrase.save();
+                }
+              }
+            }
+          }
           break;
 
         case 'archive':
@@ -357,6 +440,40 @@ export class PhrasesService {
       throw error;
     }
   }
+  /**
+   * Publish multiple phrases by IDs
+   */
+  async publishMultiple(phraseIds: string[]): Promise<{
+    success: boolean;
+    published: number;
+    errors: string[];
+  }> {
+    try {
+      const errors: string[] = [];
+      let published = 0;
+
+      for (const phraseId of phraseIds) {
+        try {
+          await this.publishPhrase(phraseId);
+          published++;
+        } catch (error) {
+          errors.push(`${phraseId}: ${error.message}`);
+        }
+      }
+
+      return {
+        success: errors.length === 0,
+        published,
+        errors,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to publish multiple phrases: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
 
   /**
    * Export phrases to a file
@@ -366,6 +483,7 @@ export class PhrasesService {
     format: 'json' | 'csv' | 'xlsx' = 'json',
     options?: { locales?: string[]; status?: string[] },
   ): Promise<{ data: Buffer; filename: string; mimeType: string }> {
+    // Implementation remains the same as in your original code
     try {
       // Verify project exists
       const project = await this.projectModel.findById(projectId).exec();
@@ -397,7 +515,6 @@ export class PhrasesService {
           key: phraseObj.key,
           sourceText: phraseObj.sourceText,
           context: phraseObj.context || '',
-          status: phraseObj.status,
           isArchived: phraseObj.isArchived,
           tags: phraseObj.tags || [],
         };
@@ -449,6 +566,7 @@ export class PhrasesService {
           filename += '.json';
           break;
 
+        case 'csv':
         case 'csv':
           // Convert to CSV format
           const csvData: any[] = [];
@@ -965,5 +1083,183 @@ export class PhrasesService {
 
       return processedRow;
     });
+  }
+
+  // NEW: Method to get phrases that need attention (have pending/rejected translations)
+  async getPhrasesThatNeedAttention(
+    projectId: string,
+    locale?: string,
+  ): Promise<Phrase[]> {
+    const filter: any = {
+      project: projectId,
+      isArchived: false,
+    };
+
+    if (locale) {
+      // Find phrases where the specific locale has pending or rejected status
+      filter.$or = [
+        { [`translations.${locale}.status`]: 'pending' },
+        { [`translations.${locale}.status`]: 'rejected' },
+        { [`translations.${locale}.status`]: 'needs_review' },
+      ];
+    } else {
+      // For MongoDB, we need to use aggregation to check nested map values
+      // This is a simplified approach - in practice you might want to use aggregation pipeline
+      const phrases = await this.phraseModel
+        .find({ project: projectId, isArchived: false })
+        .populate('project')
+        .exec();
+
+      // Filter in JavaScript since MongoDB Map queries are complex
+      return phrases.filter((phrase) => {
+        if (!phrase.translations) return false;
+
+        const translations = Array.from(phrase.translations.values());
+        return translations.some(
+          (translation) =>
+            translation.status === 'pending' ||
+            translation.status === 'rejected' ||
+            translation.status === 'needs_review',
+        );
+      });
+    }
+
+    return this.phraseModel
+      .find(filter)
+      .populate('project')
+      .sort({ updatedAt: -1 })
+      .exec();
+  }
+
+  // NEW: Method to get completion status for a project
+  async getProjectCompletionStatus(projectId: string): Promise<{
+    totalPhrases: number;
+    translationStats: Record<
+      string,
+      {
+        total: number;
+        approved: number;
+        pending: number;
+        rejected: number;
+        needsReview: number;
+        completionPercentage: number;
+      }
+    >;
+  }> {
+    const phrases = await this.phraseModel
+      .find({ project: projectId, isArchived: false })
+      .exec();
+
+    const totalPhrases = phrases.length;
+    const translationStats: Record<string, any> = {};
+
+    // Collect all locales
+    const allLocales = new Set<string>();
+    phrases.forEach((phrase) => {
+      if (phrase.translations) {
+        Array.from(phrase.translations.keys()).forEach((locale) => {
+          allLocales.add(locale);
+        });
+      }
+    });
+
+    // Calculate stats for each locale
+    allLocales.forEach((locale) => {
+      const stats = {
+        total: 0,
+        approved: 0,
+        pending: 0,
+        rejected: 0,
+        needsReview: 0,
+        completionPercentage: 0,
+      };
+
+      phrases.forEach((phrase) => {
+        const translation = phrase.translations?.get(locale);
+        if (translation) {
+          stats.total++;
+          switch (translation.status) {
+            case 'approved':
+              stats.approved++;
+              break;
+            case 'pending':
+              stats.pending++;
+              break;
+            case 'rejected':
+              stats.rejected++;
+              break;
+            case 'needs_review':
+              stats.needsReview++;
+              break;
+          }
+        }
+      });
+
+      stats.completionPercentage =
+        stats.total > 0 ? Math.round((stats.approved / stats.total) * 100) : 0;
+
+      translationStats[locale] = stats;
+    });
+
+    return {
+      totalPhrases,
+      translationStats,
+    };
+  }
+
+  // NEW: Method to update translation status
+  async updateTranslationStatus(
+    phraseId: string,
+    locale: string,
+    statusData: { status: TranslationStatus; reviewComments?: string },
+  ): Promise<Phrase> {
+    try {
+      const phrase = await this.findOne(phraseId);
+
+      if (!phrase.translations || !phrase.translations.has(locale)) {
+        throw new NotFoundException(
+          `Translation for locale '${locale}' not found in phrase ${phraseId}`,
+        );
+      }
+
+      const translation = phrase.translations.get(locale);
+      if (!translation) {
+        throw new NotFoundException(
+          `Translation for locale '${locale}' not found`,
+        );
+      }
+
+      // Update the translation
+      translation.status = statusData.status;
+      translation.reviewedAt = new Date();
+      if (statusData.reviewComments) {
+        translation.reviewComments = statusData.reviewComments;
+      }
+      translation.lastModified = new Date();
+
+      // Save back to the phrase
+      phrase.translations.set(locale, translation);
+
+      const updatedPhrase = await this.phraseModel
+        .findByIdAndUpdate(
+          phraseId,
+          { translations: phrase.translations },
+          { new: true },
+        )
+        .populate('project')
+        .exec();
+
+      if (!updatedPhrase) {
+        throw new NotFoundException(`Phrase with ID ${phraseId} not found`);
+      }
+
+      return updatedPhrase;
+    } catch (error) {
+      this.logger.error(
+        `Failed to update translation status for phrase ${phraseId}: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
   }
 }

@@ -5,6 +5,9 @@ import {
   IsEnum,
   IsBoolean,
   IsOptional,
+  IsNumber,
+  Min,
+  Max,
 } from 'class-validator';
 import { TranslationStatus } from '../entities/translation.entity';
 
@@ -35,4 +38,33 @@ export class TranslationDto {
   @IsBoolean()
   @IsOptional()
   isHuman?: boolean = true;
+
+  @ApiProperty({
+    description: 'Review comments',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  reviewComments?: string;
+
+  @ApiProperty({
+    description: 'Quality score (0-100)',
+    required: false,
+    minimum: 0,
+    maximum: 100,
+  })
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  @IsOptional()
+  qualityScore?: number;
+
+  @ApiProperty({
+    description: 'Does this translation need review?',
+    default: false,
+    required: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  needsReview?: boolean = false;
 }

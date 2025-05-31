@@ -21,15 +21,17 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from 'src/common/enums/role.enum';
+import { Public } from 'src/auth/decorators/public.decorator';
 
 @ApiTags('Users')
-@ApiBearerAuth()
+// @ApiBearerAuth()
 @Controller('user')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
-  @Roles(Role.ADMIN, Role.OWNER)
+  @Public() // Mark as public so it's accessible without authentication
+  // @Roles(Role.ADMIN, Role.OWNER)
   @ApiOperation({ summary: 'Create a new user' })
   @ApiResponse({ status: 201, description: 'User successfully created' })
   create(@Body() createUserDto: CreateUserDto) {

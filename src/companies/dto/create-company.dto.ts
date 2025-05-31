@@ -28,6 +28,4 @@ export class CreateCompanyDto {
   @IsMongoId({ each: true })
   @IsOptional()
   projects?: string[]; // Optional array of project IDs
-
-  // Removed users array as users will reference the company
 }

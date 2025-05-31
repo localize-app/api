@@ -35,7 +35,7 @@ export class UnauthorizedOperationException extends HttpException {
   constructor(operation: string) {
     super(
       `You are not authorized to perform this operation: ${operation}`,
-      HttpStatus.FORBIDDEN,
+      HttpStatus.BAD_REQUEST,
     );
   }
 }

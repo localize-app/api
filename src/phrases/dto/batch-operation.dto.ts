@@ -1,3 +1,4 @@
+// src/phrases/dto/batch-operation.dto.ts
 import {
   IsNotEmpty,
   IsArray,
@@ -11,7 +12,8 @@ import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
 export enum BatchOperation {
-  PUBLISH = 'publish',
+  APPROVE_TRANSLATIONS = 'approve_translations', // NEW
+  REJECT_TRANSLATIONS = 'reject_translations', // NEW
   ARCHIVE = 'archive',
   DELETE = 'delete',
   TAG = 'tag',
@@ -29,7 +31,7 @@ export class BatchOperationDto {
   @ApiProperty({
     description: 'Operation to perform',
     enum: BatchOperation,
-    example: BatchOperation.PUBLISH,
+    example: BatchOperation.APPROVE_TRANSLATIONS,
   })
   @IsEnum(BatchOperation)
   @IsNotEmpty()
@@ -52,4 +54,13 @@ export class BatchOperationDto {
   @IsOptional()
   @IsString()
   tag?: string; // Used for tag/untag operations
+
+  @ApiProperty({
+    description: 'Locale code (for translation operations)',
+    required: false,
+    example: 'fr-CA',
+  })
+  @IsOptional()
+  @IsString()
+  locale?: string; // Used for approve/reject translation operations
 }

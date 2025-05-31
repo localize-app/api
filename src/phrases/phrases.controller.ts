@@ -208,6 +208,14 @@ export class PhrasesController {
   @ApiResponse({
     status: 200,
     description: 'Batch operation completed successfully.',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        count: { type: 'number' },
+        errors: { type: 'array', items: { type: 'string' } },
+      },
+    },
   })
   async batchOperation(@Body() batchDto: BatchOperationDto) {
     return this.phrasesService.processBatch(batchDto);

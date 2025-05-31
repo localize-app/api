@@ -3,14 +3,12 @@ import {
   IsString,
   IsMongoId,
   IsArray,
-  IsEnum,
   IsBoolean,
   IsUrl,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
-import { PhraseStatus } from '../entities/phrase.entity';
 import { TranslationDto } from './translation.dto';
 
 export class UpdatePhraseDto {
@@ -51,14 +49,7 @@ export class UpdatePhraseDto {
   @IsOptional()
   project?: string;
 
-  @ApiProperty({
-    description: 'Phrase status',
-    enum: PhraseStatus,
-    required: false,
-  })
-  @IsEnum(PhraseStatus)
-  @IsOptional()
-  status?: PhraseStatus;
+  // REMOVED: status property
 
   @ApiProperty({
     description: 'Is the phrase archived?',

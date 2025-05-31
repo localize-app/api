@@ -1,3 +1,4 @@
+// src/phrases/entities/phrase.entity.ts
 import * as mongoose from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
@@ -52,14 +53,6 @@ export const PhraseOccurrencesSchema =
 
 export type PhraseDocument = HydratedDocument<Phrase>;
 
-export enum PhraseStatus {
-  PUBLISHED = 'published',
-  PENDING = 'pending',
-  NEEDS_REVIEW = 'needs_review',
-  REJECTED = 'rejected',
-  ARCHIVED = 'archived',
-}
-
 @Schema(baseSchemaOptions)
 export class Phrase extends BaseEntity {
   @Prop({ required: true })
@@ -78,12 +71,7 @@ export class Phrase extends BaseEntity {
   })
   project: Project;
 
-  @Prop({
-    enum: Object.values(PhraseStatus),
-    default: PhraseStatus.PENDING,
-    type: String,
-  })
-  status: PhraseStatus;
+  // REMOVED: status property - status is now only per translation
 
   @Prop({ default: false })
   isArchived: boolean;
@@ -148,4 +136,42 @@ PhraseSchema.methods.hasTranslation = function (localeCode: string): boolean {
 // Helper method to count translations
 PhraseSchema.methods.getTranslationCount = function (): number {
   return this.translations.size;
+};
+
+// NEW: Helper methods to get overall phrase status based on translations
+PhraseSchema.methods.getOverallStatus = function (): {
+  hasApproved: boolean;
+  hasPending: boolean;
+  hasRejected: boolean;
+  totalTranslations: number;
+  approvedTranslations: number;
+} {
+  const translations = Array.from(this.translations.values());
+
+  return {
+    hasApproved: translations.some((t: any) => t.status === 'approved'),
+    hasPending: translations.some((t: any) => t.status === 'pending'),
+    hasRejected: translations.some((t: any) => t.status === 'rejected'),
+    totalTranslations: translations.length,
+    approvedTranslations: translations.filter(
+      (t: any) => t.status === 'approved',
+    ).length,
+  };
+};
+
+// Helper to determine if phrase is "ready" (all translations approved)
+PhraseSchema.methods.isReady = function (): boolean {
+  const translations = Array.from(this.translations.values());
+  return (
+    translations.length > 0 &&
+    translations.every((t: any) => t.status === 'approved')
+  );
+};
+
+// Helper to determine if phrase needs attention (has pending/rejected)
+PhraseSchema.methods.needsAttention = function (): boolean {
+  const translations = Array.from(this.translations.values());
+  return translations.some(
+    (t: any) => t.status === 'pending' || t.status === 'rejected',
+  );
 };
