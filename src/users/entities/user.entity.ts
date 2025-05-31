@@ -1,10 +1,14 @@
+// src/users/entities/user.entity.ts
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { HydratedDocument } from 'mongoose';
 
 import { Role } from 'src/common/enums/role.enum';
 import { Company } from 'src/companies/entities/company.entity';
 import { BaseEntity, baseSchemaOptions } from 'src/common/entities/base.entity';
-import { RolePermissionsService } from 'src/auth/role-permission.service';
+import {
+  UserPermissions,
+  UserPermissionsSchema,
+} from './user-permissions.entity';
 
 export type UserDocument = HydratedDocument<User>;
 
@@ -37,6 +41,18 @@ export class User extends BaseEntity {
 
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Company' })
   company: Company;
+
+  // NEW: Store actual permissions in database
+  @Prop({ type: UserPermissionsSchema })
+  permissions?: UserPermissions;
+
+  // NEW: Track if permissions are customized from role defaults
+  @Prop({ default: false })
+  hasCustomPermissions: boolean;
+
+  // NEW: Track when permissions were last updated
+  @Prop({ type: Date })
+  permissionsLastUpdated?: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
@@ -47,11 +63,4 @@ UserSchema.virtual('fullName').get(function () {
     return `${this.firstName} ${this.lastName}`;
   }
   return this.firstName;
-});
-
-// Add virtual getter for permissions based on role
-UserSchema.virtual('permissions').get(function () {
-  // This will need to be injected properly in a real implementation
-  const rolePermissionsService = new RolePermissionsService();
-  return rolePermissionsService.getPermissionsForRole(this.role);
 });

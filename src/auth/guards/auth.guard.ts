@@ -1,3 +1,4 @@
+// src/auth/guards/auth.guard.ts
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
@@ -38,11 +39,12 @@ export class AuthorizationGuard implements CanActivate {
     }
 
     // Check permission-based access if required
-    if (
-      requiredPermission &&
-      this.rolePermissionsService.hasPermission(user.role, requiredPermission)
-    ) {
-      return true;
+    if (requiredPermission) {
+      return this.rolePermissionsService.hasPermission(
+        user.permissions, // This will now be the stored permissions from DB
+        user.role,
+        requiredPermission,
+      );
     }
 
     return false;

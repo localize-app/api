@@ -1,26 +1,73 @@
+// src/auth/role-permission.service.ts
 import { Injectable } from '@nestjs/common';
 import { Role } from 'src/common/enums/role.enum';
+import { CompanyPermissionSettings } from 'src/companies/entities/company-permission-settings.entity';
+import { UserPermissions } from 'src/users/entities/user-permissions.entity';
 
 /**
- * Central service for managing role-based permissions
+ * Central service for managing role-based permissions and custom permissions
  */
 @Injectable()
 export class RolePermissionsService {
   /**
-   * Check if a user with the given role has a specific permission
+   * Check if a user has a specific permission
+   * This checks actual stored permissions first, then falls back to role-based permissions
    */
-  hasPermission(role: string, permission: string): boolean {
-    // System admins have all permissions
+  hasPermission(
+    userPermissions: UserPermissions | undefined,
+    role: string,
+    permission: string,
+  ): boolean {
+    // System admins always have all permissions
     if (role === 'admin') {
       return true;
     }
 
-    const permissions = this.getPermissionsForRole(role);
-    return !!permissions[permission];
+    // If user has custom permissions stored, use those
+    if (
+      userPermissions &&
+      userPermissions[permission as keyof UserPermissions] !== undefined
+    ) {
+      return userPermissions[permission as keyof UserPermissions] as boolean;
+    }
+
+    // Fall back to role-based permissions
+    const rolePermissions = this.getPermissionsForRole(role);
+    return !!rolePermissions[permission];
   }
 
   /**
-   * Get all permissions for a specific role
+   * Get effective permissions for a user (combining role defaults with custom overrides)
+   */
+  getEffectivePermissions(
+    userPermissions: UserPermissions | undefined,
+    role: string,
+  ): UserPermissions {
+    // Start with role-based permissions as defaults
+    const rolePermissions = this.getPermissionsForRole(role);
+
+    // If no custom permissions, return role permissions
+    if (!userPermissions) {
+      return rolePermissions as unknown as UserPermissions;
+    }
+
+    // Merge custom permissions with role permissions
+    const effectivePermissions: UserPermissions =
+      rolePermissions as unknown as UserPermissions;
+
+    // Override with any custom permissions that are explicitly set
+    Object.keys(userPermissions).forEach((key) => {
+      const permissionKey = key as keyof UserPermissions;
+      if (userPermissions[permissionKey] !== undefined) {
+        effectivePermissions[permissionKey] = userPermissions[permissionKey];
+      }
+    });
+
+    return effectivePermissions;
+  }
+
+  /**
+   * Get default permissions for a specific role (unchanged from original)
    */
   getPermissionsForRole(role: string): Record<string, boolean> {
     switch (role) {
@@ -205,5 +252,84 @@ export class RolePermissionsService {
           canExportData: false,
         };
     }
+  }
+
+  createDefaultPermissions(role: string): UserPermissions {
+    const rolePermissions = this.getPermissionsForRole(role);
+    return rolePermissions as unknown as UserPermissions;
+  }
+
+  /**
+   * Check if permissions differ from role defaults
+   */
+  hasCustomizedPermissions(
+    permissions: UserPermissions,
+    role: string,
+  ): boolean {
+    const defaultPermissions = this.getPermissionsForRole(role);
+
+    return Object.keys(defaultPermissions).some((key) => {
+      const permissionKey = key as keyof UserPermissions;
+      return permissions[permissionKey] !== defaultPermissions[key];
+    });
+  }
+
+  /**
+   * Get default permissions for a role, with optional company overrides
+   */
+  getPermissionsForRoleInCompany(
+    role: string,
+    companyPermissionSettings?: CompanyPermissionSettings,
+  ): Record<string, boolean> {
+    // Check if company has custom role permissions
+    if (companyPermissionSettings?.hasCustomRolePermissions) {
+      const roleKey =
+        `${role.toLowerCase()}Defaults` as keyof CompanyPermissionSettings;
+      const companyRolePermissions = companyPermissionSettings[roleKey];
+
+      if (
+        companyRolePermissions &&
+        typeof companyRolePermissions === 'object' &&
+        !(companyRolePermissions instanceof Date)
+      ) {
+        return companyRolePermissions as unknown as Record<string, boolean>;
+      }
+    }
+
+    // Fall back to system defaults
+    return this.getPermissionsForRole(role);
+  }
+
+  /**
+   * Create default permissions for a role within a company context
+   */
+  createDefaultPermissionsForCompany(
+    role: string,
+    companyPermissionSettings?: CompanyPermissionSettings,
+  ): UserPermissions {
+    const permissions = this.getPermissionsForRoleInCompany(
+      role,
+      companyPermissionSettings,
+    );
+    return permissions as unknown as UserPermissions;
+  }
+
+  /**
+   * Check if permissions differ from company role defaults
+   */
+  hasCustomizedPermissionsInCompany(
+    permissions: UserPermissions,
+    role: string,
+    companyPermissionSettings?: CompanyPermissionSettings,
+  ): boolean {
+    const defaultPermissions = this.getPermissionsForRoleInCompany(
+      role,
+      companyPermissionSettings,
+    );
+
+    return Object.keys(defaultPermissions).some((key) => {
+      const permissionKey = key as keyof UserPermissions;
+      return permissions[permissionKey] !== defaultPermissions[key];
+    });
   }
 }

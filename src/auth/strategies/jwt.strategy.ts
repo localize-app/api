@@ -1,3 +1,4 @@
+// src/auth/strategies/jwt.strategy.ts
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
@@ -30,9 +31,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException(`User not found`);
     }
 
-    // Remove sensitive information
+    // Remove sensitive information but keep permissions for authorization
     const { passwordHash, ...result } = user;
 
-    return result;
+    // Ensure permissions are included in the user object for the authorization guard
+    return {
+      ...result,
+      permissions: user.permissions, // This is now the stored permissions from DB
+    };
   }
 }
