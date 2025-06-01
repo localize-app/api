@@ -11,7 +11,11 @@ import * as path from 'path';
 import * as csv from 'fast-csv';
 import * as xlsx from 'xlsx';
 
-import { Phrase, PhraseDocument } from './entities/phrase.entity';
+import {
+  Phrase,
+  PhraseDocument,
+  PhraseLocation,
+} from './entities/phrase.entity';
 import { Project, ProjectDocument } from '../projects/entities/project.entity';
 import { CreatePhraseDto } from './dto/create-phrase.dto';
 import { UpdatePhraseDto } from './dto/update-phrase.dto';
@@ -19,6 +23,7 @@ import { PhraseStatus, UpdateStatusDto } from './dto/update-status.dto';
 import { BatchOperationDto } from './dto/batch-operation.dto';
 import { AddTranslationDto } from './dto/add-translation.dto';
 import { Translation, TranslationStatus } from './entities/translation.entity';
+import { ExtractPhrasesDto } from './dto/extract-phrases.dto';
 
 @Injectable()
 export class PhrasesService {
@@ -1260,6 +1265,146 @@ export class PhrasesService {
         error.stack,
       );
       throw error;
+    }
+  }
+
+  // Helper to generate a phrase key from textAdd commentMore actions
+  private generatePhraseKey(text: string): string {
+    // Create a kebab-case key, limit length
+    return text
+      .toLowerCase()
+      .replace(/[^\w\s]/g, '')
+      .trim()
+      .replace(/\s+/g, '-')
+      .substring(0, 40);
+  }
+
+  // Utility functions for updating phrases with occurrence dataAdd commentMore actions
+  private updatePhraseOccurrences(
+    phrase: PhraseDocument,
+    count: number = 1,
+  ): void {
+    if (!phrase.occurrences) {
+      phrase.occurrences = {
+        count: count,
+        firstSeen: new Date(),
+        lastSeen: new Date(),
+        locations: [],
+      };
+    } else {
+      phrase.occurrences.count += count;
+      phrase.occurrences.lastSeen = new Date();
+    }
+    phrase.lastSeenAt = new Date(); // Keep the existing field updated for compatibility
+  }
+
+  private addPhraseLocation(
+    phrase: PhraseDocument,
+    location: PhraseLocation,
+  ): void {
+    if (!phrase.occurrences) {
+      phrase.occurrences = {
+        count: 1,
+        firstSeen: new Date(),
+        lastSeen: new Date(),
+        locations: [],
+      };
+    }
+
+    phrase.occurrences.locations.push(location);
+    phrase.occurrences.lastSeen = new Date();
+    phrase.lastSeenAt = new Date(); // Keep the existing field updated for compatibility
+  }
+
+  async batchExtract(extractDto: ExtractPhrasesDto) {
+    try {
+      // Find project by key
+      const project = await this.projectModel.findOne({
+        projectKey: extractDto.projectKey,
+      });
+      if (!project) {
+        throw new NotFoundException(
+          `Project with key ${extractDto.projectKey} not found`,
+        );
+      }
+
+      // Process each phrase
+      const results = await Promise.all(
+        extractDto.phrases.map(async (phraseDto) => {
+          // Check if phrase already exists
+          let phrase = await this.phraseModel.findOne({
+            project: project._id,
+            sourceText: phraseDto.sourceText,
+          });
+
+          if (!phrase) {
+            // Create new phrase
+            phrase = new this.phraseModel({
+              key: this.generatePhraseKey(phraseDto.sourceText),
+              sourceText: phraseDto.sourceText,
+              context: phraseDto.context,
+              project: project._id,
+              status: 'pending',
+              sourceUrl: extractDto.sourceUrl,
+              sourceType: extractDto.sourceType,
+              lastSeenAt: new Date(),
+              // Initialize occurrence data
+              occurrences: {
+                count: phraseDto.count || 1,
+                firstSeen: new Date(),
+                lastSeen: new Date(),
+                locations:
+                  phraseDto.locations?.map((loc) => ({
+                    ...loc,
+                    timestamp: new Date(),
+                  })) || [],
+              },
+            });
+            await phrase.save();
+            return { created: true, id: phrase._id };
+          } else {
+            // Update existing phrase
+            phrase.lastSeenAt = new Date();
+
+            // Update source URL if not set
+            if (!phrase.sourceUrl) {
+              phrase.sourceUrl = extractDto.sourceUrl;
+            }
+
+            // Update source type if not set
+            if (!phrase.sourceType && extractDto.sourceType) {
+              phrase.sourceType = extractDto.sourceType;
+            }
+
+            // Update occurrences
+            if (phraseDto.count) {
+              this.updatePhraseOccurrences(phrase, phraseDto.count);
+            }
+
+            // Add locations if provided
+            if (phraseDto.locations && phraseDto.locations.length > 0) {
+              for (const location of phraseDto.locations) {
+                this.addPhraseLocation(phrase, {
+                  ...location,
+                  timestamp: new Date(),
+                });
+              }
+            }
+
+            await phrase.save();
+            return { created: false, id: phrase._id, updated: true };
+          }
+        }),
+      );
+
+      return {
+        success: true,
+        processed: results.length,
+        created: results.filter((r) => r.created).length,
+        updated: results.filter((r) => !r.created).length,
+      };
+    } catch (error) {
+      console.log('Error processing extracted phrases:', error);
     }
   }
 }

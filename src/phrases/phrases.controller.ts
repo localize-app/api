@@ -40,6 +40,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../common/enums/role.enum';
 import { RequirePermission } from '../auth/decorators/permission.decorator';
+import { Public } from 'src/auth/decorators/public.decorator';
+import { ExtractPhrasesDto } from './dto/extract-phrases.dto';
 
 @ApiTags('Phrases')
 @ApiBearerAuth()
@@ -320,5 +322,11 @@ export class PhrasesController {
     return this.phrasesService.importPhrases(projectId, file.path, {
       overwrite,
     });
+  }
+
+  @Post('batch-extract')
+  @Public()
+  async extractPhrases(@Body() extractDto: ExtractPhrasesDto) {
+    return this.phrasesService.batchExtract(extractDto);
   }
 }
