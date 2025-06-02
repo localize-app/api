@@ -64,6 +64,98 @@ export class PhrasesController {
     return this.phrasesService.create(createPhraseDto);
   }
 
+  // Add these new routes to your PhrasesController
+
+  @Get('by-status/:projectId/:status')
+  @ApiOperation({ summary: 'Get phrases by overall status' })
+  @ApiParam({ name: 'projectId', description: 'Project ID' })
+  @ApiParam({
+    name: 'status',
+    description: 'Overall status',
+    enum: ['pending', 'approved', 'needs_attention', 'ready', 'untranslated'],
+  })
+  @ApiQuery({
+    name: 'locale',
+    required: false,
+    description: 'Filter by specific locale',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Page number for pagination',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Results per page for pagination',
+  })
+  async getPhrasesByStatus(
+    @Param('projectId') projectId: string,
+    @Param('status')
+    status:
+      | 'pending'
+      | 'approved'
+      | 'needs_attention'
+      | 'ready'
+      | 'untranslated',
+    @Res({ passthrough: true }) res: Response,
+    @Query('locale') locale?: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 20,
+  ) {
+    const { phrases, total } =
+      await this.phrasesService.getPhrasesByOverallStatus(projectId, status, {
+        page,
+        limit,
+        locale,
+      });
+
+    const startIndex = (page - 1) * limit;
+    const endIndex = Math.min(startIndex + phrases.length - 1, total - 1);
+
+    res
+      .status(HttpStatus.OK)
+      .header('Content-Range', `phrases ${startIndex}-${endIndex}/${total}`);
+
+    return phrases;
+  }
+
+  @Get('stats/:projectId')
+  @ApiOperation({ summary: 'Get phrase statistics for a project' })
+  @ApiParam({ name: 'projectId', description: 'Project ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns phrase statistics',
+    schema: {
+      type: 'object',
+      properties: {
+        total: { type: 'number' },
+        untranslated: { type: 'number' },
+        pending: { type: 'number' },
+        approved: { type: 'number' },
+        needsAttention: { type: 'number' },
+        ready: { type: 'number' },
+        byLocale: {
+          type: 'object',
+          additionalProperties: {
+            type: 'object',
+            properties: {
+              total: { type: 'number' },
+              pending: { type: 'number' },
+              approved: { type: 'number' },
+              rejected: { type: 'number' },
+              needsReview: { type: 'number' },
+            },
+          },
+        },
+      },
+    },
+  })
+  async getPhraseStats(@Param('projectId') projectId: string) {
+    return this.phrasesService.getProjectPhraseStats(projectId);
+  }
+
+  // Update the existing findAll method's query parameters
   @Get()
   @ApiOperation({ summary: 'Get all phrases with optional filtering' })
   @ApiQuery({
@@ -72,9 +164,16 @@ export class PhrasesController {
     description: 'Filter by project ID',
   })
   @ApiQuery({
-    name: 'status',
+    name: 'translationStatus', // Changed from 'status'
     required: false,
-    description: 'Filter by status',
+    description:
+      'Filter by translation status (pending, approved, rejected, needs_review)',
+    enum: ['pending', 'approved', 'rejected', 'needs_review'],
+  })
+  @ApiQuery({
+    name: 'locale',
+    required: false,
+    description: 'Filter by specific locale (use with translationStatus)',
   })
   @ApiQuery({
     name: 'isArchived',

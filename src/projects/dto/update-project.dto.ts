@@ -142,6 +142,15 @@ export class UpdateProjectDto {
   projectKey?: string;
 
   @ApiProperty({
+    description: 'Source locale code for translations',
+    enum: LocaleCode,
+    required: false,
+  })
+  @IsEnum(LocaleCode)
+  @IsOptional()
+  sourceLocale?: LocaleCode;
+
+  @ApiProperty({
     description: 'Array of supported locale codes',
     type: [String],
     enum: LocaleCode,

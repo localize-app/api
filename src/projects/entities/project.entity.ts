@@ -50,6 +50,13 @@ export class Project extends BaseEntity {
   projectKey?: string; // For API access
 
   @Prop({
+    type: String,
+    enum: Object.values(LocaleCode),
+    required: true,
+  })
+  sourceLocale: LocaleCode; // Source locale code for translations
+
+  @Prop({
     type: [String],
     enum: Object.values(LocaleCode),
     default: [],

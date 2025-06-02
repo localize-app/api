@@ -76,6 +76,196 @@ export class PhrasesService {
   }
 
   /**
+   * Get phrases by overall status (based on translation statuses)
+   */
+  async getPhrasesByOverallStatus(
+    projectId: string,
+    status:
+      | 'pending'
+      | 'approved'
+      | 'needs_attention'
+      | 'ready'
+      | 'untranslated',
+    options?: { page?: number; limit?: number; locale?: string },
+  ): Promise<{ phrases: Phrase[]; total: number }> {
+    const { page = 1, limit = 20, locale } = options || {};
+    const skip = (page - 1) * limit;
+
+    const allPhrases = await this.phraseModel
+      .find({ project: projectId, isArchived: false })
+      .populate('project')
+      .exec();
+
+    let filteredPhrases: Phrase[] = [];
+
+    switch (status) {
+      case 'untranslated':
+        filteredPhrases = allPhrases.filter(
+          (phrase) => !phrase.translations || phrase.translations.size === 0,
+        );
+        break;
+
+      case 'pending':
+        filteredPhrases = allPhrases.filter((phrase) => {
+          if (!phrase.translations) return false;
+          const translations = Array.from(phrase.translations.values());
+          return locale
+            ? phrase.translations.get(locale)?.status === 'pending'
+            : translations.some((t) => t.status === 'pending');
+        });
+        break;
+
+      case 'approved':
+        filteredPhrases = allPhrases.filter((phrase) => {
+          if (!phrase.translations) return false;
+          const translations = Array.from(phrase.translations.values());
+          return locale
+            ? phrase.translations.get(locale)?.status === 'approved'
+            : translations.some((t) => t.status === 'approved');
+        });
+        break;
+
+      case 'needs_attention':
+        filteredPhrases = allPhrases.filter((phrase) => {
+          if (!phrase.translations) return false;
+          const translations = Array.from(phrase.translations.values());
+          return locale
+            ? ['rejected', 'needs_review'].includes(
+                phrase.translations.get(locale)?.status || '',
+              )
+            : translations.some((t) =>
+                ['rejected', 'needs_review'].includes(t.status),
+              );
+        });
+        break;
+
+      case 'ready':
+        filteredPhrases = allPhrases.filter((phrase) => {
+          if (!phrase.translations || phrase.translations.size === 0)
+            return false;
+          const translations = Array.from(phrase.translations.values());
+          return translations.every((t) => t.status === 'approved');
+        });
+        break;
+    }
+
+    const total = filteredPhrases.length;
+    const paginatedPhrases = filteredPhrases.slice(skip, skip + limit);
+
+    return { phrases: paginatedPhrases, total };
+  }
+
+  /**
+   * Get phrase statistics for a project
+   */
+  async getProjectPhraseStats(projectId: string): Promise<{
+    total: number;
+    untranslated: number;
+    pending: number;
+    approved: number;
+    needsAttention: number;
+    ready: number;
+    byLocale: Record<
+      string,
+      {
+        total: number;
+        pending: number;
+        approved: number;
+        rejected: number;
+        needsReview: number;
+      }
+    >;
+  }> {
+    const phrases = await this.phraseModel
+      .find({ project: projectId, isArchived: false })
+      .exec();
+
+    const stats = {
+      total: phrases.length,
+      untranslated: 0,
+      pending: 0,
+      approved: 0,
+      needsAttention: 0,
+      ready: 0,
+      byLocale: {} as Record<string, any>,
+    };
+
+    // Collect all locales
+    const allLocales = new Set<string>();
+    phrases.forEach((phrase) => {
+      if (phrase.translations) {
+        Array.from(phrase.translations.keys()).forEach((locale) => {
+          allLocales.add(locale);
+        });
+      }
+    });
+
+    // Initialize locale stats
+    allLocales.forEach((locale) => {
+      stats.byLocale[locale] = {
+        total: 0,
+        pending: 0,
+        approved: 0,
+        rejected: 0,
+        needsReview: 0,
+      };
+    });
+
+    // Calculate stats
+    phrases.forEach((phrase) => {
+      // Overall phrase categorization
+      if (!phrase.translations || phrase.translations.size === 0) {
+        stats.untranslated++;
+      } else {
+        const translations = Array.from(phrase.translations.values());
+        const hasApproved = translations.some((t) => t.status === 'approved');
+        const hasPending = translations.some((t) => t.status === 'pending');
+        const hasRejected = translations.some((t) =>
+          ['rejected', 'needs_review'].includes(t.status),
+        );
+        const allApproved = translations.every((t) => t.status === 'approved');
+
+        if (allApproved) {
+          stats.ready++;
+        } else if (hasApproved) {
+          stats.approved++;
+        }
+
+        if (hasPending) {
+          stats.pending++;
+        }
+
+        if (hasRejected) {
+          stats.needsAttention++;
+        }
+      }
+
+      // Per-locale stats
+      allLocales.forEach((locale) => {
+        const translation = phrase.translations?.get(locale);
+        if (translation) {
+          stats.byLocale[locale].total++;
+          switch (translation.status) {
+            case 'pending':
+              stats.byLocale[locale].pending++;
+              break;
+            case 'approved':
+              stats.byLocale[locale].approved++;
+              break;
+            case 'rejected':
+              stats.byLocale[locale].rejected++;
+              break;
+            case 'needs_review':
+              stats.byLocale[locale].needsReview++;
+              break;
+          }
+        }
+      });
+    });
+
+    return stats;
+  }
+  /**
    * Find all phrases with optional filtering
    */
   async findAll(
@@ -83,8 +273,8 @@ export class PhrasesService {
   ): Promise<{ phrases: Phrase[]; total: number }> {
     const {
       project,
-      translationStatus, // NEW: Filter by translation status
-      locale, // NEW: Filter by specific locale
+      translationStatus, // Filter by translation status
+      locale, // Filter by specific locale
       isArchived,
       search,
       tags,
@@ -116,17 +306,93 @@ export class PhrasesService {
       filter.tags = { $all: tagArray };
     }
 
-    // NEW: Filter by translation status for a specific locale
-    if (translationStatus && locale) {
-      filter[`translations.${locale}.status`] = translationStatus;
-    }
-
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
 
-    // Get total count
+    // If filtering by translation status and locale, we need to use aggregation
+    if (translationStatus && locale) {
+      const pipeline = [
+        { $match: filter },
+        {
+          $addFields: {
+            hasTargetTranslation: {
+              $and: [
+                { $ne: [`$translations.${locale}`, null] },
+                { $ne: [`$translations.${locale}`, undefined] },
+              ],
+            },
+            targetTranslationStatus: `$translations.${locale}.status`,
+          },
+        },
+        {
+          $match: {
+            hasTargetTranslation: true,
+            targetTranslationStatus: translationStatus,
+          },
+        },
+        { $sort: { updatedAt: -1 as const } },
+        {
+          $facet: {
+            phrases: [
+              { $skip: skip },
+              { $limit: parseInt(limit as string) },
+              {
+                $lookup: {
+                  from: 'projects',
+                  localField: 'project',
+                  foreignField: '_id',
+                  as: 'project',
+                },
+              },
+              {
+                $unwind: '$project',
+              },
+            ],
+            totalCount: [{ $count: 'count' }],
+          },
+        },
+      ];
+
+      const result = await this.phraseModel.aggregate(pipeline).exec();
+      const phrases = result[0]?.phrases || [];
+      const total = result[0]?.totalCount[0]?.count || 0;
+
+      return { phrases, total };
+    }
+
+    // If filtering by translation status but no specific locale (check all locales)
+    if (translationStatus && !locale) {
+      // Get all phrases first, then filter in JavaScript
+      // This is less efficient but more reliable for Map fields
+      const allPhrases = await this.phraseModel
+        .find(filter)
+        .populate('project')
+        .exec();
+
+      const filteredPhrases = allPhrases.filter((phrase) => {
+        if (!phrase.translations || phrase.translations.size === 0) {
+          return translationStatus === 'none'; // Special case for phrases with no translations
+        }
+
+        // Check if any translation has the target status
+        const translations = Array.from(phrase.translations.values());
+        return translations.some(
+          (translation) => translation.status === translationStatus,
+        );
+      });
+
+      // Apply pagination manually
+      const total = filteredPhrases.length;
+      const paginatedPhrases = filteredPhrases.slice(
+        skip,
+        skip + parseInt(limit as string),
+      );
+
+      return { phrases: paginatedPhrases, total };
+    }
+
+    // Standard filtering without translation status
     const total = await this.phraseModel.countDocuments(filter).exec();
 
-    // Get paginated results
     const phrases = await this.phraseModel
       .find(filter)
       .sort({ updatedAt: -1 })

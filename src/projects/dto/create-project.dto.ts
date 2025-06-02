@@ -160,6 +160,16 @@ export class CreateProjectDto {
   @IsOptional()
   projectKey?: string;
 
+  // source locale
+  @ApiProperty({
+    description: 'Source locale code',
+    enum: LocaleCode,
+    example: LocaleCode.EN_US,
+  })
+  @IsEnum(LocaleCode)
+  @IsNotEmpty()
+  sourceLocale: LocaleCode;
+
   @ApiProperty({
     description: 'Array of supported locale codes',
     type: [String],
