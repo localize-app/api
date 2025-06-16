@@ -64,31 +64,74 @@ export class PhrasesController {
     return this.phrasesService.create(createPhraseDto);
   }
 
-  // Add these new routes to your PhrasesController
-
   @Get('by-status/:projectId/:status')
-  @ApiOperation({ summary: 'Get phrases by overall status' })
-  @ApiParam({ name: 'projectId', description: 'Project ID' })
+  @ApiOperation({
+    summary: 'Get phrases by overall status',
+    description:
+      'Retrieve phrases filtered by their overall translation status. Can be filtered by specific locale.',
+  })
+  @ApiParam({
+    name: 'projectId',
+    description: 'Project ID',
+    example: '683b078a81c83419eb10d144',
+  })
   @ApiParam({
     name: 'status',
-    description: 'Overall status',
+    description: 'Overall status to filter by',
     enum: ['pending', 'approved', 'needs_attention', 'ready', 'untranslated'],
+    example: 'pending',
   })
   @ApiQuery({
     name: 'locale',
     required: false,
-    description: 'Filter by specific locale',
+    description:
+      'Filter by specific locale (e.g., fr-CA). If not provided, checks all locales.',
+    example: 'fr-CA',
   })
   @ApiQuery({
     name: 'page',
     required: false,
-    description: 'Page number for pagination',
+    description: 'Page number for pagination (starts from 1)',
+    example: 1,
+    type: Number,
   })
   @ApiQuery({
     name: 'limit',
     required: false,
-    description: 'Results per page for pagination',
+    description: 'Results per page for pagination (max 100)',
+    example: 10,
+    type: Number,
   })
+  @ApiResponse({
+    status: 200,
+    description: 'Successfully retrieved phrases with pagination headers',
+    headers: {
+      'Content-Range': {
+        description: 'Pagination information (e.g., "phrases 0-9/25")',
+        schema: { type: 'string' },
+      },
+    },
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', example: '683b078a81c83419eb10d144' },
+          key: { type: 'string', example: 'welcome_message' },
+          sourceText: { type: 'string', example: 'Welcome to our app!' },
+          context: { type: 'string', example: 'Homepage greeting' },
+          project: { type: 'object' },
+          translations: { type: 'object' },
+          tags: { type: 'array', items: { type: 'string' } },
+          isArchived: { type: 'boolean' },
+          createdAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Invalid parameters' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
   async getPhrasesByStatus(
     @Param('projectId') projectId: string,
     @Param('status')
@@ -100,24 +143,81 @@ export class PhrasesController {
       | 'untranslated',
     @Res({ passthrough: true }) res: Response,
     @Query('locale') locale?: string,
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 20,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    const { phrases, total } =
-      await this.phrasesService.getPhrasesByOverallStatus(projectId, status, {
-        page,
-        limit,
-        locale,
-      });
+    // Parse and validate pagination parameters
+    const pageNumber = page ? Math.max(1, parseInt(page, 10)) : 1;
+    const limitNumber = limit
+      ? Math.min(100, Math.max(1, parseInt(limit, 10)))
+      : 20;
 
-    const startIndex = (page - 1) * limit;
-    const endIndex = Math.min(startIndex + phrases.length - 1, total - 1);
+    // Validate projectId format (basic MongoDB ObjectId check)
+    if (!projectId.match(/^[0-9a-fA-F]{24}$/)) {
+      throw new BadRequestException('Invalid project ID format');
+    }
 
-    res
-      .status(HttpStatus.OK)
-      .header('Content-Range', `phrases ${startIndex}-${endIndex}/${total}`);
+    // Validate status parameter
+    const validStatuses = [
+      'pending',
+      'approved',
+      'needs_attention',
+      'ready',
+      'untranslated',
+    ];
+    if (!validStatuses.includes(status)) {
+      throw new BadRequestException(
+        `Invalid status. Must be one of: ${validStatuses.join(', ')}`,
+      );
+    }
 
-    return phrases;
+    try {
+      const { phrases, total } =
+        await this.phrasesService.getPhrasesByOverallStatus(projectId, status, {
+          page: pageNumber,
+          limit: limitNumber,
+          locale,
+        });
+
+      // Calculate pagination info
+      const startIndex = (pageNumber - 1) * limitNumber;
+      const endIndex = Math.min(startIndex + phrases.length - 1, total - 1);
+
+      // Set Content-Range header for pagination info
+      res
+        .status(HttpStatus.OK)
+        .header(
+          'Content-Range',
+          `phrases ${startIndex}-${endIndex >= 0 ? endIndex : 0}/${total}`,
+        )
+        .header('X-Total-Count', total.toString())
+        .header('X-Page', pageNumber.toString())
+        .header('X-Per-Page', limitNumber.toString())
+        .header('X-Total-Pages', Math.ceil(total / limitNumber).toString());
+
+      return {
+        data: phrases,
+        pagination: {
+          page: pageNumber,
+          limit: limitNumber,
+          total,
+          pages: Math.ceil(total / limitNumber),
+          hasNext: pageNumber * limitNumber < total,
+          hasPrev: pageNumber > 1,
+        },
+      };
+    } catch (error) {
+      // this.logger.error(
+      //   `Error getting phrases by status: ${error.message}`,
+      //   error.stack,
+      // );
+
+      if (error.message.includes('not found')) {
+        throw new NotFoundException(error.message);
+      }
+
+      throw error;
+    }
   }
 
   @Get('stats/:projectId')
