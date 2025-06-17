@@ -2,6 +2,7 @@
 import * as mongoose from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
+import * as crypto from 'crypto';
 
 import { Project } from '../../projects/entities/project.entity';
 import {
@@ -71,7 +72,13 @@ export class Phrase extends BaseEntity {
   })
   project: Project;
 
-  // REMOVED: status property - status is now only per translation
+  // NEW: Hash of the source text for duplicate detection and change tracking
+  @Prop({ required: true, index: true })
+  sourceHash: string;
+
+  // NEW: Hash of sourceText + context for more precise matching
+  @Prop({ index: true })
+  contentHash?: string;
 
   @Prop({ default: false })
   isArchived: boolean;
@@ -112,6 +119,49 @@ export class Phrase extends BaseEntity {
 }
 
 export const PhraseSchema = SchemaFactory.createForClass(Phrase);
+
+// Add compound index for efficient lookups
+PhraseSchema.index({ project: 1, sourceHash: 1 });
+PhraseSchema.index({ project: 1, contentHash: 1 });
+
+// Helper method to generate hash
+PhraseSchema.statics.generateHash = function (text: string): string {
+  return crypto
+    .createHash('sha256')
+    .update(text.trim().toLowerCase())
+    .digest('hex');
+};
+
+// Helper method to generate content hash (includes context)
+PhraseSchema.statics.generateContentHash = function (
+  text: string,
+  context?: string,
+): string {
+  const content = `${text.trim().toLowerCase()}:${(context || '').trim().toLowerCase()}`;
+  return crypto.createHash('sha256').update(content).digest('hex');
+};
+
+// Pre-save hook to generate hashes
+PhraseSchema.pre('save', function (next) {
+  if (this.isModified('sourceText')) {
+    // Generate source hash
+    this.sourceHash = crypto
+      .createHash('sha256')
+      .update(this.sourceText.trim().toLowerCase())
+      .digest('hex');
+
+    // Generate content hash if context exists
+    if (this.context) {
+      this.contentHash = crypto
+        .createHash('sha256')
+        .update(
+          `${this.sourceText.trim().toLowerCase()}:${this.context.trim().toLowerCase()}`,
+        )
+        .digest('hex');
+    }
+  }
+  next();
+});
 
 // Helper method to handle translations more easily
 PhraseSchema.methods.getTranslation = function (

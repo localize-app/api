@@ -10,6 +10,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as csv from 'fast-csv';
 import * as xlsx from 'xlsx';
+import { createHash } from 'crypto';
 
 import {
   Phrase,
@@ -88,6 +89,10 @@ export class PhrasesService {
       | 'untranslated',
     options?: { page?: number; limit?: number; locale?: string },
   ): Promise<{ phrases: Phrase[]; total: number }> {
+    console.log(
+      `Getting phrases for project ${projectId} with status ${status}`,
+    );
+
     const { page = 1, limit = 20, locale } = options || {};
     const skip = (page - 1) * limit;
 
@@ -184,6 +189,10 @@ export class PhrasesService {
               totalCount: [{ $count: 'count' }],
             },
           },
+        );
+
+        console.log(
+          `Running aggregation pipeline: ${JSON.stringify(pipeline)}`,
         );
 
         const result = await this.phraseModel.aggregate(pipeline).exec();
@@ -1733,6 +1742,8 @@ export class PhrasesService {
     phrase.lastSeenAt = new Date(); // Keep the existing field updated for compatibility
   }
 
+  // Add this to your existing PhrasesService class
+
   async batchExtract(extractDto: ExtractPhrasesDto) {
     try {
       // Find project by key
@@ -1745,13 +1756,25 @@ export class PhrasesService {
         );
       }
 
-      // Process each phrase
       const results = await Promise.all(
         extractDto.phrases.map(async (phraseDto) => {
-          // Check if phrase already exists
+          // Generate hashes for the phrase
+          const sourceHash = createHash('sha256')
+            .update(phraseDto.sourceText.trim().toLowerCase())
+            .digest('hex');
+
+          const contentHash = phraseDto.context
+            ? createHash('sha256')
+                .update(
+                  `${phraseDto.sourceText.trim().toLowerCase()}:${phraseDto.context.trim().toLowerCase()}`,
+                )
+                .digest('hex')
+            : undefined;
+
+          // Check if phrase already exists using hash
           let phrase = await this.phraseModel.findOne({
             project: project._id,
-            sourceText: phraseDto.sourceText,
+            sourceHash: sourceHash,
           });
 
           if (!phrase) {
@@ -1761,6 +1784,8 @@ export class PhrasesService {
               sourceText: phraseDto.sourceText,
               context: phraseDto.context,
               project: project._id,
+              sourceHash: sourceHash,
+              contentHash: contentHash,
               status: 'pending',
               sourceUrl: extractDto.sourceUrl,
               sourceType: extractDto.sourceType,
@@ -1778,8 +1803,27 @@ export class PhrasesService {
               },
             });
             await phrase.save();
-            return { created: true, id: phrase._id };
+            return {
+              created: true,
+              id: phrase._id,
+              hash: sourceHash,
+              isNew: true,
+            };
           } else {
+            // Check if the source text has changed (hash mismatch with stored text)
+            const currentHash = createHash('sha256')
+              .update(phrase.sourceText.trim().toLowerCase())
+              .digest('hex');
+
+            const hasTextChanged = currentHash !== sourceHash;
+
+            if (hasTextChanged) {
+              // Source text has been modified - this could trigger notifications
+              this.logger.warn(
+                `Source text changed for phrase ${phrase._id}. Old hash: ${currentHash}, New hash: ${sourceHash}`,
+              );
+            }
+
             // Update existing phrase
             phrase.lastSeenAt = new Date();
 
@@ -1809,19 +1853,138 @@ export class PhrasesService {
             }
 
             await phrase.save();
-            return { created: false, id: phrase._id, updated: true };
+            return {
+              created: false,
+              id: phrase._id,
+              updated: true,
+              hash: sourceHash,
+              isNew: false,
+              textChanged: hasTextChanged,
+            };
           }
         }),
       );
+
+      // Group results by hash for duplicate detection
+      const phrasesByHash = results.reduce(
+        (acc, result) => {
+          if (!acc[result.hash]) {
+            acc[result.hash] = [];
+          }
+          acc[result.hash].push(result);
+          return acc;
+        },
+        {} as Record<string, typeof results>,
+      );
+
+      // Find potential duplicates (same hash in multiple locations)
+      const duplicates = Object.entries(phrasesByHash)
+        .filter(([_, phrases]) => phrases.length > 1)
+        .map(([hash, phrases]) => ({
+          hash,
+          count: phrases.length,
+          phraseIds: phrases.map((p) => p.id),
+        }));
 
       return {
         success: true,
         processed: results.length,
         created: results.filter((r) => r.created).length,
         updated: results.filter((r) => !r.created).length,
+        duplicatesFound: duplicates.length,
+        duplicates: duplicates,
+        results: results.map((r) => ({
+          id: r.id,
+          created: r.created,
+          hash: r.hash,
+          textChanged: r.textChanged || false,
+        })),
       };
     } catch (error) {
-      console.log('Error processing extracted phrases:', error);
+      this.logger.error('Error processing extracted phrases:', error);
+      throw error;
     }
+  }
+
+  // Add this method to find similar phrases using hash
+  async findSimilarPhrases(
+    projectId: string,
+    sourceText: string,
+    options?: {
+      includeOtherProjects?: boolean;
+      threshold?: number;
+    },
+  ): Promise<{
+    exactMatches: Phrase[];
+    similarPhrases: Phrase[];
+  }> {
+    const sourceHash = createHash('sha256')
+      .update(sourceText.trim().toLowerCase())
+      .digest('hex');
+
+    // Find exact matches using hash
+    const exactMatchQuery: any = { sourceHash };
+    if (!options?.includeOtherProjects) {
+      exactMatchQuery.project = projectId;
+    }
+
+    const exactMatches = await this.phraseModel
+      .find(exactMatchQuery)
+      .populate('project')
+      .exec();
+
+    // For similar phrases, you could implement fuzzy matching
+    // This is a simple example using regex
+    const words = sourceText.toLowerCase().split(/\s+/);
+    const regexPattern = words.map((word) => `(?=.*${word})`).join('');
+
+    const similarQuery: any = {
+      sourceText: { $regex: regexPattern, $options: 'i' },
+      _id: { $nin: exactMatches.map((p) => p._id) },
+    };
+
+    if (!options?.includeOtherProjects) {
+      similarQuery.project = projectId;
+    }
+
+    const similarPhrases = await this.phraseModel
+      .find(similarQuery)
+      .limit(10)
+      .populate('project')
+      .exec();
+
+    return {
+      exactMatches,
+      similarPhrases,
+    };
+  }
+
+  // Add method to detect changed phrases
+  async detectChangedPhrases(
+    projectId: string,
+    phrases: Array<{ sourceText: string; hash: string }>,
+  ): Promise<Array<{ phraseId: string; oldHash: string; newHash: string }>> {
+    const changedPhrases: Array<{
+      phraseId: string;
+      oldHash: string;
+      newHash: string;
+    }> = [];
+
+    for (const inputPhrase of phrases) {
+      const existingPhrase = await this.phraseModel.findOne({
+        project: projectId,
+        sourceText: inputPhrase.sourceText,
+      });
+
+      if (existingPhrase && existingPhrase.sourceHash !== inputPhrase.hash) {
+        changedPhrases.push({
+          phraseId: existingPhrase._id.toString(),
+          oldHash: existingPhrase.sourceHash,
+          newHash: inputPhrase.hash,
+        });
+      }
+    }
+
+    return changedPhrases;
   }
 }

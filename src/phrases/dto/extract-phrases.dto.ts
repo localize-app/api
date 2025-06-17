@@ -46,6 +46,11 @@ export class ExtractPhraseItemDto {
   @ValidateNested({ each: true })
   @Type(() => PhraseLocationDto)
   locations?: PhraseLocationDto[];
+
+  // NEW: Optional hash provided by client for verification
+  @IsString()
+  @IsOptional()
+  hash?: string;
 }
 
 export class ExtractPhrasesDto {
@@ -69,4 +74,13 @@ export class ExtractPhrasesDto {
   @IsObject()
   @IsOptional()
   metadata?: Record<string, any>;
+
+  // NEW: Options for hash-based processing
+  @IsObject()
+  @IsOptional()
+  hashOptions?: {
+    verifyHashes?: boolean; // Verify client-provided hashes
+    detectDuplicates?: boolean; // Check for duplicates across projects
+    trackChanges?: boolean; // Track if phrases have changed
+  };
 }
