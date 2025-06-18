@@ -5,7 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as csv from 'fast-csv';
@@ -89,37 +89,42 @@ export class PhrasesService {
       | 'untranslated',
     options?: { page?: number; limit?: number; locale?: string },
   ): Promise<{ phrases: Phrase[]; total: number }> {
-    console.log(
-      `Getting phrases for project ${projectId} with status ${status}`,
-    );
-
-    const { page = 1, limit = 20, locale } = options || {};
-    const skip = (page - 1) * limit;
-
     try {
-      // First, get all phrases for the project (not archived)
-      const query: any = {
-        project: projectId,
-        isArchived: false,
-      };
+      // Verify project exists
+      const project = await this.projectModel.findById(projectId).exec();
+      if (!project) {
+        throw new NotFoundException(`Project with ID ${projectId} not found`);
+      }
 
-      // If we're filtering by a specific locale and status, we can optimize the query
-      if (locale && (status === 'pending' || status === 'approved')) {
-        // Use MongoDB aggregation for better performance with Map fields
-        const pipeline: any[] = [
-          { $match: query },
+      const page = options?.page || 1;
+      const limit = options?.limit || 20;
+      const locale = options?.locale;
+      const skip = (page - 1) * limit;
+
+      // Build the aggregation pipeline
+      const pipeline: any[] = [
+        // Match project and non-archived phrases
+        {
+          $match: {
+            project: new Types.ObjectId(projectId),
+            isArchived: false,
+          },
+        },
+      ];
+
+      // Add locale-specific fields if locale is provided
+      if (locale) {
+        pipeline.push(
+          // Convert translations Map to array and extract locale data
           {
             $addFields: {
-              // Convert the translations Map to an object for easier querying
               translationsArray: { $objectToArray: '$translations' },
-              hasTranslationForLocale: {
-                $gt: [
+              localeTranslation: {
+                $arrayElemAt: [
                   {
-                    $size: {
-                      $filter: {
-                        input: { $objectToArray: '$translations' },
-                        cond: { $eq: ['$this.k', locale] },
-                      },
+                    $filter: {
+                      input: { $objectToArray: '$translations' },
+                      cond: { $eq: ['$$this.k', locale] },
                     },
                   },
                   0,
@@ -127,186 +132,219 @@ export class PhrasesService {
               },
             },
           },
+          // Add fields for locale-specific checks
           {
             $addFields: {
-              localeTranslationStatus: {
-                $let: {
-                  vars: {
-                    translation: {
-                      $arrayElemAt: [
-                        {
-                          $filter: {
-                            input: { $objectToArray: '$translations' },
-                            cond: { $eq: ['$this.k', locale] },
-                          },
-                        },
-                        0,
-                      ],
-                    },
-                  },
-                  in: '$translation.v.status',
+              hasLocaleTranslation: {
+                $cond: {
+                  if: { $gt: ['$localeTranslation', null] },
+                  then: true,
+                  else: false,
                 },
               },
-            },
-          },
-        ];
-
-        // Add status filter
-        if (status === 'pending') {
-          pipeline.push({
-            $match: {
-              hasTranslationForLocale: true,
-              localeTranslationStatus: 'pending',
-            },
-          });
-        } else if (status === 'approved') {
-          pipeline.push({
-            $match: {
-              hasTranslationForLocale: true,
-              localeTranslationStatus: 'approved',
-            },
-          });
-        }
-
-        // Add pagination and population
-        pipeline.push(
-          { $sort: { updatedAt: -1 } },
-          {
-            $facet: {
-              phrases: [
-                { $skip: skip },
-                { $limit: limit },
-                {
-                  $lookup: {
-                    from: 'projects',
-                    localField: 'project',
-                    foreignField: '_id',
-                    as: 'project',
-                  },
-                },
-                { $unwind: '$project' },
-              ],
-              totalCount: [{ $count: 'count' }],
+              localeTranslationStatus: '$localeTranslation.v.status',
+              localeTranslationText: '$localeTranslation.v.text',
             },
           },
         );
-
-        console.log(
-          `Running aggregation pipeline: ${JSON.stringify(pipeline)}`,
-        );
-
-        const result = await this.phraseModel.aggregate(pipeline).exec();
-        const phrases = result[0]?.phrases || [];
-        const total = result[0]?.totalCount[0]?.count || 0;
-
-        return { phrases, total };
+      } else {
+        // For no locale, convert translations to array for filtering
+        pipeline.push({
+          $addFields: {
+            translationsArray: { $objectToArray: '$translations' },
+            hasAnyTranslation: {
+              $gt: [{ $size: { $ifNull: ['$translations', []] } }, 0],
+            },
+          },
+        });
       }
 
-      // For other cases, fall back to JavaScript filtering (less efficient but more flexible)
-      const allPhrases = await this.phraseModel
-        .find(query)
-        .populate('project')
-        .sort({ updatedAt: -1 })
-        .exec();
-
-      let filteredPhrases: Phrase[] = [];
-
+      // Apply status-specific filtering
       switch (status) {
         case 'untranslated':
-          filteredPhrases = allPhrases.filter((phrase) => {
-            return !phrase.translations || phrase.translations.size === 0;
-          });
+          if (locale) {
+            // No translation for specific locale
+            pipeline.push({
+              $match: {
+                $or: [
+                  { hasLocaleTranslation: false },
+                  { localeTranslationText: { $in: [null, '', undefined] } },
+                ],
+              },
+            });
+          } else {
+            // No translations at all
+            pipeline.push({
+              $match: {
+                $or: [
+                  { translations: { $exists: false } },
+                  { translations: { $eq: {} } },
+                  { hasAnyTranslation: false },
+                ],
+              },
+            });
+          }
           break;
 
         case 'pending':
-          filteredPhrases = allPhrases.filter((phrase) => {
-            if (!phrase.translations || phrase.translations.size === 0)
-              return false;
-
-            if (locale) {
-              // Check specific locale
-              const translation = phrase.translations.get(locale);
-              return translation && translation.status === 'pending';
-            } else {
-              // Check any locale
-              const translations = Array.from(phrase.translations.values());
-              return translations.some((t) => t.status === 'pending');
-            }
-          });
+          if (locale) {
+            // Specific locale has pending status OR no translation yet
+            pipeline.push({
+              $match: {
+                $or: [
+                  { localeTranslationStatus: 'pending' },
+                  // Optionally include phrases without translation for this locale
+                  // Uncomment the line below if you want to treat missing translations as pending
+                  // { hasLocaleTranslation: false }
+                ],
+              },
+            });
+          } else {
+            // Any translation has pending status
+            pipeline.push({
+              $match: {
+                hasAnyTranslation: true,
+                'translationsArray.v.status': 'pending',
+              },
+            });
+          }
           break;
 
         case 'approved':
-          filteredPhrases = allPhrases.filter((phrase) => {
-            if (!phrase.translations || phrase.translations.size === 0)
-              return false;
-
-            if (locale) {
-              // Check specific locale
-              const translation = phrase.translations.get(locale);
-              return translation && translation.status === 'approved';
-            } else {
-              // Check any locale
-              const translations = Array.from(phrase.translations.values());
-              return translations.some((t) => t.status === 'approved');
-            }
-          });
+          if (locale) {
+            // Specific locale is approved
+            pipeline.push({
+              $match: {
+                hasLocaleTranslation: true,
+                localeTranslationStatus: 'approved',
+              },
+            });
+          } else {
+            // Any translation is approved
+            pipeline.push({
+              $match: {
+                hasAnyTranslation: true,
+                'translationsArray.v.status': 'approved',
+              },
+            });
+          }
           break;
 
         case 'needs_attention':
-          filteredPhrases = allPhrases.filter((phrase) => {
-            if (!phrase.translations || phrase.translations.size === 0)
-              return false;
-
-            if (locale) {
-              // Check specific locale
-              const translation = phrase.translations.get(locale);
-              return (
-                translation &&
-                ['rejected', 'needs_review'].includes(translation.status)
-              );
-            } else {
-              // Check any locale
-              const translations = Array.from(phrase.translations.values());
-              return translations.some((t) =>
-                ['rejected', 'needs_review'].includes(t.status),
-              );
-            }
-          });
+          if (locale) {
+            // Specific locale needs attention
+            pipeline.push({
+              $match: {
+                hasLocaleTranslation: true,
+                localeTranslationStatus: { $in: ['rejected', 'needs_review'] },
+              },
+            });
+          } else {
+            // Any translation needs attention
+            pipeline.push({
+              $match: {
+                hasAnyTranslation: true,
+                'translationsArray.v.status': {
+                  $in: ['rejected', 'needs_review'],
+                },
+              },
+            });
+          }
           break;
 
         case 'ready':
-          filteredPhrases = allPhrases.filter((phrase) => {
-            if (!phrase.translations || phrase.translations.size === 0)
-              return false;
-
-            if (locale) {
-              // Check specific locale
-              const translation = phrase.translations.get(locale);
-              return translation && translation.status === 'approved';
-            } else {
-              // Check all locales are approved
-              const translations = Array.from(phrase.translations.values());
-              return (
-                translations.length > 0 &&
-                translations.every((t) => t.status === 'approved')
-              );
-            }
-          });
+          if (locale) {
+            // Specific locale is approved
+            pipeline.push({
+              $match: {
+                hasLocaleTranslation: true,
+                localeTranslationStatus: 'approved',
+              },
+            });
+          } else {
+            // All translations are approved
+            pipeline.push({
+              $match: {
+                hasAnyTranslation: true,
+                $expr: {
+                  $eq: [
+                    {
+                      $size: {
+                        $filter: {
+                          input: '$translationsArray',
+                          cond: { $ne: ['$$this.v.status', 'approved'] },
+                        },
+                      },
+                    },
+                    0,
+                  ],
+                },
+              },
+            });
+          }
           break;
 
         default:
-          filteredPhrases = [];
+          throw new BadRequestException(`Invalid status: ${status}`);
       }
 
-      // Apply pagination manually
-      const total = filteredPhrases.length;
-      const paginatedPhrases = filteredPhrases.slice(skip, skip + limit);
+      // Add sorting
+      pipeline.push({ $sort: { updatedAt: -1 } });
+
+      // Use facet for pagination and counting
+      pipeline.push({
+        $facet: {
+          phrases: [
+            { $skip: skip },
+            { $limit: limit },
+            // Populate project reference
+            {
+              $lookup: {
+                from: 'projects',
+                localField: 'project',
+                foreignField: '_id',
+                as: 'projectData',
+              },
+            },
+            {
+              $unwind: {
+                path: '$projectData',
+                preserveNullAndEmptyArrays: true,
+              },
+            },
+            // Clean up temporary fields and rename project
+            {
+              $addFields: {
+                project: '$projectData',
+              },
+            },
+            {
+              $project: {
+                translationsArray: 0,
+                localeTranslation: 0,
+                hasLocaleTranslation: 0,
+                localeTranslationStatus: 0,
+                localeTranslationText: 0,
+                hasAnyTranslation: 0,
+                projectData: 0,
+              },
+            },
+          ],
+          totalCount: [{ $count: 'count' }],
+        },
+      });
+
+      // Execute the aggregation
+      const [result] = await this.phraseModel.aggregate(pipeline).exec();
+
+      const phrases = result?.phrases || [];
+      const total = result?.totalCount?.[0]?.count || 0;
 
       this.logger.log(
         `Status filter: ${status}, Locale: ${locale || 'all'}, Total found: ${total}, Page: ${page}, Limit: ${limit}`,
       );
 
-      return { phrases: paginatedPhrases, total };
+      return { phrases, total };
     } catch (error) {
       this.logger.error(
         `Failed to get phrases by status: ${error.message}`,
