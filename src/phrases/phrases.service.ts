@@ -35,6 +35,41 @@ export class PhrasesService {
     @InjectModel(Project.name) private projectModel: Model<ProjectDocument>,
   ) {}
 
+  async getTranslationsForLanguage(projectKey: string, langCode: string) {
+    try {
+      // First, find the project by its key
+      const project = await this.projectModel.findOne({ projectKey }).exec();
+
+      if (!project) {
+        throw new NotFoundException(`Project with key ${projectKey} not found`);
+      }
+
+      // Now use the project's ObjectId to find phrases
+      const phrases = await this.phraseModel
+        .find({
+          project: project._id, // Use the ObjectId, not the key
+          isArchived: { $ne: true },
+        })
+        .select('sourceText translations');
+
+      // Build translations map
+      const translationsMap: Record<string, string> = {};
+
+      phrases.forEach((phrase) => {
+        if (phrase.translations && phrase.translations.get) {
+          const translation = phrase.translations.get(langCode);
+          // Only include approved translations
+          if (translation && translation.status === 'approved') {
+            translationsMap[phrase.sourceText] = translation.text;
+          }
+        }
+      });
+
+      return { translations: translationsMap };
+    } catch (error) {
+      throw new Error(`Failed to fetch translations: ${error.message}`);
+    }
+  }
   /**
    * Create a new phrase
    */

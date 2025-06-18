@@ -1,11 +1,13 @@
 // src/translations/translations.controller.ts
-import { Controller, Post, Body, UseGuards, Get } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Get, Param } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiBody,
   ApiBearerAuth,
   ApiResponse,
+  ApiParam,
+  ApiHeader,
 } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -18,13 +20,18 @@ import {
   BatchTranslationResultDto,
   TranslateBatchPhrasesDto,
 } from './dto/translate-batch.dto';
+import { PhrasesService } from 'src/phrases/phrases.service';
+import { Public } from 'src/auth/decorators/public.decorator';
 
 @ApiTags('Translation')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('translate')
 export class TranslationsController {
-  constructor(private readonly translationService: TranslationsService) {}
+  constructor(
+    private readonly translationService: TranslationsService,
+    private readonly phrasesService: PhrasesService,
+  ) {}
 
   @Get('providers')
   @ApiOperation({ summary: 'Get available translation providers' })
@@ -108,5 +115,35 @@ export class TranslationsController {
     @Body() translateDto: TranslateBatchPhrasesDto,
   ): Promise<BatchTranslationResultDto> {
     return this.translationService.translateBatchPhrases(translateDto);
+  }
+
+  @Public()
+  @Get(':projectKey/:langCode')
+  @ApiOperation({ summary: 'Get all translations for a project and language' })
+  @ApiParam({ name: 'projectKey', description: 'Project key' })
+  @ApiParam({ name: 'langCode', description: 'Language code' })
+  @ApiHeader({
+    name: 'X-Project-Key',
+    description: 'Project key for authentication',
+    required: false, // Optional since it can also come from URL
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns translations map',
+    schema: {
+      type: 'object',
+      properties: {
+        translations: {
+          type: 'object',
+          additionalProperties: { type: 'string' },
+        },
+      },
+    },
+  })
+  async getTranslationsForLanguage(
+    @Param('projectKey') projectKey: string,
+    @Param('langCode') langCode: string,
+  ) {
+    return this.phrasesService.getTranslationsForLanguage(projectKey, langCode);
   }
 }

@@ -5,8 +5,9 @@ import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
-import { PhrasesController } from './phrases.controller';
 import { PhrasesService } from './phrases.service';
+import { PhrasesController } from './phrases.controller';
+import { ProjectsModule } from 'src/projects/projects.module';
 import { Phrase, PhraseSchema } from './entities/phrase.entity';
 import { Project, ProjectSchema } from '../projects/entities/project.entity';
 
@@ -28,6 +29,7 @@ import { Project, ProjectSchema } from '../projects/entities/project.entity';
         fileSize: 10 * 1024 * 1024, // 10MB limit
       },
     }),
+    ProjectsModule,
   ],
   controllers: [PhrasesController],
   providers: [PhrasesService],

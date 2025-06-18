@@ -14,6 +14,10 @@ export class ProjectsService {
     @InjectModel(Project.name) private projectModel: Model<ProjectDocument>,
   ) {}
 
+  async findByKey(key: string) {
+    return this.projectModel.findOne({ projectKey: key }).exec();
+  }
+
   async create(createProjectDto: CreateProjectDto): Promise<Project> {
     // Generate a project key if not provided
     if (!createProjectDto.projectKey) {
