@@ -26,11 +26,12 @@ async function bootstrap() {
   // Enable CORS
   app.enableCors({
     origin: configService.get<string>('CORS_ORIGIN', '*'),
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     preflightContinue: false,
     optionsSuccessStatus: 204,
     credentials: true,
-    exposedHeaders: ['Content-Range', 'Content-Disposition'],
+    // origin: true,
+    // allowedHeaders: 'Content-Type,Accept,Authorization,X-Project-Key',
   });
 
   // Set up Swagger documentation

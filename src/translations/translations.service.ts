@@ -9,6 +9,11 @@ import {
   BatchTranslationResultDto,
   TranslateBatchPhrasesDto,
 } from './dto/translate-batch.dto';
+import {
+  InstantTranslateDto,
+  InstantTranslateResponseDto,
+} from './dto/instant-translate.dto';
+import { createHash } from 'crypto';
 
 @Injectable()
 export class TranslationsService {
@@ -205,5 +210,146 @@ export class TranslationsService {
 
   getAvailableProviders() {
     return this.translationFactory.getAvailableProviders();
+  }
+
+  // Add this method to your existing translations.service.ts
+
+  async instantTranslate(
+    dto: InstantTranslateDto,
+    projectId: string,
+  ): Promise<InstantTranslateResponseDto> {
+    const startTime = Date.now();
+
+    this.logger.log(
+      `Instant translation request: ${dto.texts.length} texts from ${dto.sourceLanguage} to ${dto.targetLanguage}`,
+    );
+
+    try {
+      // Check cache first (optional - implement Redis caching)
+      const cacheKey = this.generateCacheKey(
+        dto.texts,
+        dto.sourceLanguage,
+        dto.targetLanguage,
+      );
+      const cached = await this.getCachedTranslations(cacheKey);
+      if (cached) {
+        this.logger.log('Returning cached translations');
+        return cached;
+      }
+
+      // Get the best available provider
+      const provider =
+        await this.translationFactory.getBestProviderForLanguagePair(
+          dto.sourceLanguage || 'en',
+          dto.targetLanguage,
+        );
+
+      // Check if provider supports batch translation
+      const translations: string[] = [];
+
+      if (provider.translateBatch) {
+        // Use batch translation if available
+        const batchResult = await provider.translateBatch({
+          texts: dto.texts,
+          sourceLanguage: dto.sourceLanguage || 'en',
+          targetLanguage: dto.targetLanguage,
+        });
+        translations.push(...batchResult.translatedTexts);
+      } else {
+        // Fallback to individual translations
+        const translationPromises = dto.texts.map((text: any) =>
+          provider.translateText({
+            text,
+            sourceLanguage: dto.sourceLanguage || 'en',
+            targetLanguage: dto.targetLanguage,
+          }),
+        );
+
+        const results = await Promise.all(translationPromises);
+        translations.push(...results.map((r: any) => r.translatedText));
+      }
+
+      const response: InstantTranslateResponseDto = {
+        translations,
+        sourceLanguage: dto.sourceLanguage || 'en',
+        targetLanguage: dto.targetLanguage,
+        timestamp: new Date().toISOString(),
+      };
+
+      // Cache the result (optional)
+      await this.cacheTranslations(cacheKey, response);
+
+      // Track usage (optional)
+      await this.trackInstantTranslationUsage(
+        projectId,
+        dto.texts.length,
+        provider.getName(),
+      );
+
+      const duration = Date.now() - startTime;
+      this.logger.log(
+        `Instant translation completed in ${duration}ms using ${provider.getName()}`,
+      );
+
+      return response;
+    } catch (error) {
+      this.logger.error(
+        `Instant translation failed: ${error.message}`,
+        error.stack,
+      );
+
+      // Return original texts on error
+      return {
+        translations: dto.texts,
+        sourceLanguage: dto.sourceLanguage || 'en',
+        targetLanguage: dto.targetLanguage,
+        timestamp: new Date().toISOString(),
+      };
+    }
+  }
+
+  // Helper methods to add to the service
+  private generateCacheKey(
+    texts: string[],
+    sourceLang: string,
+    targetLang: string,
+  ): string {
+    const textHash = createHash('md5').update(texts.join('|')).digest('hex');
+    return `instant:${sourceLang}:${targetLang}:${textHash}`;
+  }
+
+  private async getCachedTranslations(
+    key: string,
+  ): Promise<InstantTranslateResponseDto | null> {
+    console.log(`Checking cache for key: ${key}`);
+
+    // Implement Redis caching here if available
+    // Example:
+    // const cached = await this.redis.get(key);
+    // return cached ? JSON.parse(cached) : null;
+    return null;
+  }
+
+  private async cacheTranslations(
+    key: string,
+    data: InstantTranslateResponseDto,
+  ): Promise<void> {
+    console.log(`Caching translations for key: ${key}`, data);
+    // Implement Redis caching here if available
+    // Example:
+    // await this.redis.setex(key, 3600, JSON.stringify(data)); // Cache for 1 hour
+  }
+
+  private async trackInstantTranslationUsage(
+    projectId: string,
+    textCount: number,
+    provider: string,
+  ): Promise<void> {
+    console.log(
+      `Tracking instant translation usage for project ${projectId}: ${textCount} texts using ${provider}`,
+    );
+
+    // Optional: Track usage for analytics/billing
+    // You could create an activity record or update project statistics
   }
 }

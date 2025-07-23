@@ -13,6 +13,7 @@ import { PhrasesService } from 'src/phrases/phrases.service';
 import { Project, ProjectSchema } from 'src/projects/entities/project.entity';
 import { PhrasesModule } from 'src/phrases/phrases.module';
 import { ProjectsModule } from 'src/projects/projects.module';
+import { ProjectsService } from 'src/projects/projects.service';
 
 @Module({
   imports: [
@@ -32,6 +33,8 @@ import { ProjectsModule } from 'src/projects/projects.module';
     LibreTranslateProvider,
     MyMemoryProvider,
     GoogleTranslateProvider,
+    ProjectsService,
+    // ProjectP
     // ProjectKeyGuard,
   ],
   exports: [TranslationsService, TranslationFactoryService],

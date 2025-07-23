@@ -1,5 +1,14 @@
-// src/translations/translations.controller.ts
-import { Controller, Post, Body, UseGuards, Get, Param } from '@nestjs/common';
+// import { Throttle } from '@nestjs/throttler';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Get,
+  Param,
+  Headers,
+  UnauthorizedException,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -22,6 +31,11 @@ import {
 } from './dto/translate-batch.dto';
 import { PhrasesService } from 'src/phrases/phrases.service';
 import { Public } from 'src/auth/decorators/public.decorator';
+import {
+  InstantTranslateDto,
+  InstantTranslateResponseDto,
+} from './dto/instant-translate.dto';
+import { ProjectsService } from 'src/projects/projects.service';
 
 @ApiTags('Translation')
 @ApiBearerAuth()
@@ -31,6 +45,7 @@ export class TranslationsController {
   constructor(
     private readonly translationService: TranslationsService,
     private readonly phrasesService: PhrasesService,
+    private readonly projectsService: ProjectsService,
   ) {}
 
   @Get('providers')
@@ -145,5 +160,57 @@ export class TranslationsController {
     @Param('langCode') langCode: string,
   ) {
     return this.phrasesService.getTranslationsForLanguage(projectKey, langCode);
+  }
+
+  // Add this endpoint to your existing translations.controller.ts
+
+  @Post('instant')
+  @Public() // Make it public like batch-extract endpoint
+  @ApiOperation({
+    summary: 'Instant translation for UI elements',
+    description:
+      'Translate multiple texts instantly for elements with instant-translation class',
+  })
+  @ApiHeader({
+    name: 'X-Project-Key',
+    description: 'Project key for authentication',
+    required: true,
+  })
+  @ApiBody({ type: InstantTranslateDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Successfully translated texts',
+    type: InstantTranslateResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid request data',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid project key',
+  })
+  // @Throttle({
+  //   limit: 100, // Limit to 100 requests
+  //   ttl: 60, // per minute
+  //   // keyGenerator: (req) => req.headers['x-project-key'] || 'default', // Use project key as key
+  // }) // 100 requests per minute
+  async instantTranslate(
+    @Body() instantTranslateDto: InstantTranslateDto,
+    @Headers('x-project-key') projectKey: string,
+  ): Promise<InstantTranslateResponseDto> {
+    // Validate project key
+    const project = await this.projectsService.findByKey(projectKey);
+    if (!project) {
+      throw new UnauthorizedException('Invalid project key');
+    }
+
+    // Call the service method
+    const result = await this.translationService.instantTranslate(
+      instantTranslateDto,
+      project._id.toString(),
+    );
+
+    return result;
   }
 }
