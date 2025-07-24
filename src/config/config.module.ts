@@ -15,6 +15,13 @@ import * as Joi from 'joi';
         MONGODB_URI: Joi.string().required(),
         JWT_SECRET: Joi.string().required(),
         JWT_EXPIRATION: Joi.string().default('1d'),
+
+        // Redis Configuration
+        REDIS_HOST: Joi.string().default('localhost'),
+        REDIS_PORT: Joi.number().default(6379),
+        REDIS_PASSWORD: Joi.string().allow('').optional(),
+        REDIS_TTL: Joi.number().default(300), // 5 minutes default
+        REDIS_MAX_ITEMS: Joi.number().default(1000),
       }),
     }),
   ],
