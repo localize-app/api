@@ -1,3 +1,4 @@
+// src/translations/translations.module.ts
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -14,6 +15,7 @@ import { Project, ProjectSchema } from 'src/projects/entities/project.entity';
 import { PhrasesModule } from 'src/phrases/phrases.module';
 import { ProjectsModule } from 'src/projects/projects.module';
 import { ProjectsService } from 'src/projects/projects.service';
+import { CacheModule } from 'src/cache/cache.module'; // Import CacheModule
 
 @Module({
   imports: [
@@ -22,8 +24,9 @@ import { ProjectsService } from 'src/projects/projects.service';
       { name: Project.name, schema: ProjectSchema },
     ]),
     ConfigModule,
-    PhrasesModule, // Import the entire PhrasesModule
-    ProjectsModule, // If you need ProjectKeyGuard
+    CacheModule, // Add CacheModule
+    PhrasesModule,
+    ProjectsModule,
   ],
   controllers: [TranslationsController],
   providers: [
@@ -34,8 +37,6 @@ import { ProjectsService } from 'src/projects/projects.service';
     MyMemoryProvider,
     GoogleTranslateProvider,
     ProjectsService,
-    // ProjectP
-    // ProjectKeyGuard,
   ],
   exports: [TranslationsService, TranslationFactoryService],
 })

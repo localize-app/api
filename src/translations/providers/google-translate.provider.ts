@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 // src/translations/providers/google-translate.provider.ts
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
@@ -17,13 +17,14 @@ export class GoogleTranslateProvider implements TranslationProvider {
   private readonly apiKey: string;
   private readonly endpoint =
     'https://translation.googleapis.com/language/translate/v2';
+  private readonly maxTextLength = 5000; // Google's limit per request
 
   constructor(private configService: ConfigService) {
     // @ts-ignore
     this.apiKey = this.configService.get<string>('GOOGLE_TRANSLATE_API_KEY');
     if (!this.apiKey) {
       this.logger.warn(
-        'GOOGLE_TRANSLATE_API_KEY not set, machine translation will not work',
+        'GOOGLE_TRANSLATE_API_KEY not set, Google Translate will not work',
       );
     }
   }
@@ -82,18 +83,21 @@ export class GoogleTranslateProvider implements TranslationProvider {
       const sourceLang = this.normalizeLanguageCode(request.sourceLanguage);
       const targetLang = this.normalizeLanguageCode(request.targetLanguage);
 
+      // Google Translate supports batch translation natively
       const response = await axios.post(`${this.endpoint}?key=${this.apiKey}`, {
-        q: request.texts,
+        q: request.texts, // Array of texts
         source: sourceLang,
         target: targetLang,
         format: 'text',
       });
 
-      if (response.data?.data?.translations) {
+      if (response.data?.data?.translations?.length > 0) {
+        const translatedTexts = response.data.data.translations.map(
+          (t: any) => t.translatedText,
+        );
+
         return {
-          translatedTexts: response.data.data.translations.map(
-            (t: any) => t.translatedText,
-          ),
+          translatedTexts,
           provider: this.getName(),
         };
       }
@@ -104,7 +108,29 @@ export class GoogleTranslateProvider implements TranslationProvider {
         `Google Translate batch error: ${error.message}`,
         error.stack,
       );
-      throw new Error(`Google Translate batch failed: ${error.message}`);
+
+      // Fallback to individual translations
+      this.logger.warn('Falling back to individual translations');
+      const translatedTexts: string[] = [];
+
+      for (const text of request.texts) {
+        try {
+          const result = await this.translateText({
+            text,
+            sourceLanguage: request.sourceLanguage,
+            targetLanguage: request.targetLanguage,
+          });
+          translatedTexts.push(result.translatedText);
+        } catch (err) {
+          // Return original text on error
+          translatedTexts.push(text);
+        }
+      }
+
+      return {
+        translatedTexts,
+        provider: this.getName(),
+      };
     }
   }
 
@@ -124,8 +150,9 @@ export class GoogleTranslateProvider implements TranslationProvider {
       'bg',
       'ca',
       'ceb',
-      'zh-cn',
-      'zh-tw',
+      'ny',
+      'zh',
+      'zh-TW',
       'co',
       'hr',
       'cs',
@@ -134,6 +161,7 @@ export class GoogleTranslateProvider implements TranslationProvider {
       'en',
       'eo',
       'et',
+      'tl',
       'fi',
       'fr',
       'fy',
@@ -145,6 +173,7 @@ export class GoogleTranslateProvider implements TranslationProvider {
       'ht',
       'ha',
       'haw',
+      'iw',
       'he',
       'hi',
       'hmn',
@@ -155,11 +184,10 @@ export class GoogleTranslateProvider implements TranslationProvider {
       'ga',
       'it',
       'ja',
-      'jv',
+      'jw',
       'kn',
       'kk',
       'km',
-      'rw',
       'ko',
       'ku',
       'ky',
@@ -179,7 +207,6 @@ export class GoogleTranslateProvider implements TranslationProvider {
       'my',
       'ne',
       'no',
-      'ny',
       'or',
       'ps',
       'fa',
@@ -202,14 +229,11 @@ export class GoogleTranslateProvider implements TranslationProvider {
       'su',
       'sw',
       'sv',
-      'tl',
       'tg',
       'ta',
-      'tt',
       'te',
       'th',
       'tr',
-      'tk',
       'uk',
       'ur',
       'ug',
@@ -224,10 +248,24 @@ export class GoogleTranslateProvider implements TranslationProvider {
   }
 
   getMaxTextLength(): number {
-    return 30000; // Google Translate limit
+    return this.maxTextLength;
   }
 
-  private normalizeLanguageCode(locale: string): string {
-    return locale.split('-')[0].toLowerCase();
+  private normalizeLanguageCode(code: string): string {
+    // Google uses some specific codes
+    const langMap: Record<string, string> = {
+      'zh-CN': 'zh',
+      'zh-TW': 'zh-TW',
+      he: 'iw', // Hebrew uses 'iw' in Google
+      jv: 'jw', // Javanese uses 'jw' in Google
+    };
+
+    // Check if we have a specific mapping
+    if (langMap[code]) {
+      return langMap[code];
+    }
+
+    // For most languages, use the base code
+    return code.split('-')[0];
   }
 }

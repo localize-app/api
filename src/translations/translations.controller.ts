@@ -36,6 +36,7 @@ import {
   InstantTranslateResponseDto,
 } from './dto/instant-translate.dto';
 import { ProjectsService } from 'src/projects/projects.service';
+import { RateLimit, RateLimitGuard } from 'src/common/guards/rate-limit.guard';
 
 @ApiTags('Translation')
 @ApiBearerAuth()
@@ -162,14 +163,18 @@ export class TranslationsController {
     return this.phrasesService.getTranslationsForLanguage(projectKey, langCode);
   }
 
-  // Add this endpoint to your existing translations.controller.ts
-
   @Post('instant')
   @Public() // Make it public like batch-extract endpoint
+  @UseGuards(RateLimitGuard) // Apply rate limiting
+  @RateLimit({
+    points: 100, // 100 requests
+    duration: 60, // per minute
+    keyPrefix: 'instant-translate',
+  })
   @ApiOperation({
     summary: 'Instant translation for UI elements',
     description:
-      'Translate multiple texts instantly for elements with instant-translation class',
+      'Translate multiple texts instantly for elements with instant-translation class. Results are cached for performance.',
   })
   @ApiHeader({
     name: 'X-Project-Key',
@@ -190,11 +195,19 @@ export class TranslationsController {
     status: 401,
     description: 'Invalid project key',
   })
-  // @Throttle({
-  //   limit: 100, // Limit to 100 requests
-  //   ttl: 60, // per minute
-  //   // keyGenerator: (req) => req.headers['x-project-key'] || 'default', // Use project key as key
-  // }) // 100 requests per minute
+  @ApiResponse({
+    status: 429,
+    description: 'Too many requests - rate limit exceeded',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 429 },
+        message: { type: 'string', example: 'Too many requests' },
+        error: { type: 'string', example: 'Rate limit exceeded' },
+        retryAfter: { type: 'number', example: 60 },
+      },
+    },
+  })
   async instantTranslate(
     @Body() instantTranslateDto: InstantTranslateDto,
     @Headers('x-project-key') projectKey: string,

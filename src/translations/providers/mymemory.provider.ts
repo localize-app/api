@@ -14,6 +14,7 @@ export class MyMemoryProvider implements TranslationProvider {
   private readonly logger = new Logger(MyMemoryProvider.name);
   private readonly baseUrl = 'https://api.mymemory.translated.net';
   private readonly dailyLimit = 10000; // MyMemory free daily limit
+  private readonly maxTextLength = 500; // Max characters per request for free tier
 
   constructor() {
     this.logger.log('MyMemoryProvider instantiated');
@@ -76,7 +77,7 @@ export class MyMemoryProvider implements TranslationProvider {
   ): Promise<BatchTranslationResponse> {
     this.logger.log(`Batch translating ${request.texts.length} texts`);
 
-    const translations: string[] = [];
+    const translatedTexts: string[] = [];
 
     // Add small delay between requests to respect rate limits
     for (let i = 0; i < request.texts.length; i++) {
@@ -90,7 +91,7 @@ export class MyMemoryProvider implements TranslationProvider {
           sourceLanguage: request.sourceLanguage,
           targetLanguage: request.targetLanguage,
         });
-        translations.push(result.translatedText);
+        translatedTexts.push(result.translatedText);
 
         // Add delay between requests (MyMemory rate limiting)
         if (i < request.texts.length - 1) {
@@ -98,85 +99,147 @@ export class MyMemoryProvider implements TranslationProvider {
         }
       } catch (error) {
         this.logger.error(
-          `Batch translation failed for text: ${request.texts[i]}`,
-          error,
+          `Failed to translate text at index ${i}: ${error.message}`,
         );
-        translations.push(request.texts[i]); // Fallback to original text
+        // Return original text on error
+        translatedTexts.push(request.texts[i]);
       }
     }
 
-    this.logger.log(
-      `Batch translation completed: ${translations.length} results`,
-    );
-
     return {
-      translatedTexts: translations,
+      translatedTexts,
       provider: this.getName(),
     };
   }
 
   getSupportedLanguages(): string[] {
-    const languages = [
-      'ar',
-      'bg',
-      'ca',
-      'zh-cn',
-      'zh-tw',
-      'cs',
-      'da',
-      'nl',
+    // MyMemory supports many languages, here are the most common ones
+    return [
       'en',
-      'et',
-      'fi',
+      'es',
       'fr',
       'de',
-      'el',
-      'he',
-      'hi',
-      'hu',
-      'id',
       'it',
+      'pt',
+      'ru',
       'ja',
       'ko',
+      'zh',
+      'ar',
+      'hi',
+      'tr',
+      'pl',
+      'nl',
+      'sv',
+      'da',
+      'no',
+      'fi',
+      'cs',
+      'hu',
+      'el',
+      'he',
+      'th',
+      'id',
+      'ms',
+      'vi',
+      'uk',
+      'ro',
+      'bg',
+      'hr',
+      'sr',
+      'sk',
+      'sl',
+      'et',
       'lv',
       'lt',
       'mt',
-      'no',
-      'pl',
-      'pt',
-      'ro',
-      'ru',
-      'sk',
-      'sl',
-      'es',
-      'sv',
-      'th',
-      'tr',
-      'uk',
-      'vi',
+      'ga',
+      'cy',
+      'is',
+      'mk',
+      'sq',
+      'ca',
+      'eu',
+      'gl',
+      'af',
+      'sw',
+      'fil',
+      'bn',
+      'ta',
+      'te',
+      'ml',
+      'kn',
+      'mr',
+      'gu',
+      'pa',
+      'ne',
+      'si',
+      'my',
+      'km',
+      'lo',
+      'ka',
+      'am',
+      'fa',
+      'ur',
+      'ps',
+      'sd',
+      'ha',
+      'yo',
+      'ig',
+      'zu',
+      'xh',
+      'jv',
+      'su',
+      'tg',
+      'ky',
+      'kk',
+      'uz',
+      'tk',
+      'az',
+      'hy',
+      'mn',
+      'bo',
+      'la',
+      'eo',
+      'yi',
+      'gd',
+      'br',
+      'bs',
+      'lb',
+      'oc',
+      'ast',
+      'co',
+      'fo',
+      'fy',
+      'kw',
+      'sc',
+      'an',
+      'wa',
     ];
-
-    this.logger.log(`MyMemory supports ${languages.length} languages`);
-    return languages;
   }
 
   getMaxTextLength(): number {
-    return 500; // MyMemory has a 500 character limit per request
+    return this.maxTextLength;
   }
 
-  private normalizeLanguageCode(locale: string): string {
-    // MyMemory uses specific format for some languages
-    const mapping: Record<string, string> = {
-      'zh-CN': 'zh-cn',
-      'zh-TW': 'zh-tw',
-      'zh-Hans': 'zh-cn',
-      'zh-Hant': 'zh-tw',
+  private normalizeLanguageCode(code: string): string {
+    // MyMemory uses ISO 639-1 codes
+    const langMap: Record<string, string> = {
+      'en-US': 'en',
+      'en-GB': 'en',
+      'es-ES': 'es',
+      'es-MX': 'es',
+      'pt-BR': 'pt',
+      'pt-PT': 'pt',
+      'zh-CN': 'zh',
+      'zh-TW': 'zh',
+      'fr-FR': 'fr',
+      'fr-CA': 'fr',
+      'de-DE': 'de',
+      'de-AT': 'de',
+      'de-CH': 'de',
     };
 
-    const normalized = locale.toLowerCase();
-    const result = mapping[locale] || normalized.split('-')[0];
-
-    this.logger.log(`Normalized language code: ${locale} -> ${result}`);
-    return result;
+    return langMap[code] || code.split('-')[0];
   }
 }
