@@ -32,7 +32,7 @@ export class CompaniesController {
   constructor(private readonly companiesService: CompaniesService) {}
 
   @Post()
-  @Roles(Role.ADMIN)
+  @Roles(Role.SYSTEM_ADMIN)
   @ApiOperation({ summary: 'Create a new company' })
   @ApiResponse({
     status: 201,
@@ -75,7 +75,7 @@ export class CompaniesController {
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN, Role.OWNER)
+  @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_OWNER)
   @ApiOperation({ summary: 'Update a company' })
   @ApiParam({ name: 'id', description: 'Company ID' })
   @ApiResponse({
@@ -88,7 +88,7 @@ export class CompaniesController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN) // Only admin role can delete companies
+  @Roles(Role.SYSTEM_ADMIN) // Only admin role can delete companies
   @ApiOperation({ summary: 'Delete a company' })
   @ApiParam({ name: 'id', description: 'Company ID' })
   @ApiResponse({ status: 200, description: 'Company successfully deleted' })
@@ -97,7 +97,7 @@ export class CompaniesController {
   }
 
   @Post(':id/users/:userId')
-  @Roles(Role.ADMIN, Role.OWNER)
+  @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_OWNER)
   @ApiOperation({ summary: 'Add a user to a company' })
   @ApiParam({ name: 'id', description: 'Company ID' })
   @ApiParam({ name: 'userId', description: 'User ID' })
@@ -111,7 +111,7 @@ export class CompaniesController {
   }
 
   @Delete(':id/users/:userId')
-  @Roles(Role.ADMIN, Role.OWNER)
+  @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_OWNER)
   @ApiOperation({ summary: 'Remove a user from a company' })
   @ApiParam({ name: 'id', description: 'Company ID' })
   @ApiParam({ name: 'userId', description: 'User ID' })

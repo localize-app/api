@@ -118,7 +118,7 @@ export class TranslationsController {
   }
 
   @Post('phrases/batch')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.MEMBER, Role.TRANSLATOR)
+  @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_OWNER, Role.MEMBER, Role.TRANSLATOR)
   @RequirePermission('canTranslate')
   @ApiOperation({ summary: 'Translate multiple phrases and save to database' })
   @ApiBody({ type: TranslateBatchPhrasesDto })

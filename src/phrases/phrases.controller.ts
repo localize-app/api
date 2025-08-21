@@ -51,7 +51,7 @@ export class PhrasesController {
   constructor(private readonly phrasesService: PhrasesService) {}
 
   @Post()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.MEMBER)
+  @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_OWNER, Role.MEMBER)
   @RequirePermission('canCreatePhrases')
   @ApiOperation({ summary: 'Create a new phrase' })
   @ApiBody({ type: CreatePhraseDto })
@@ -335,7 +335,7 @@ export class PhrasesController {
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.MEMBER)
+  @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_OWNER, Role.MEMBER)
   @RequirePermission('canEditPhrases')
   @ApiOperation({ summary: 'Update a phrase' })
   @ApiParam({ name: 'id', description: 'Phrase ID' })
@@ -353,7 +353,7 @@ export class PhrasesController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_OWNER)
   @RequirePermission('canDeletePhrases')
   @ApiOperation({ summary: 'Delete a phrase' })
   @ApiParam({ name: 'id', description: 'Phrase ID' })
@@ -367,7 +367,7 @@ export class PhrasesController {
   }
 
   @Post(':id/translations/:locale')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.MEMBER, Role.TRANSLATOR)
+  @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_OWNER, Role.MEMBER, Role.TRANSLATOR)
   @RequirePermission('canTranslate')
   @ApiOperation({ summary: 'Add or update a translation for a phrase' })
   @ApiParam({ name: 'id', description: 'Phrase ID' })
@@ -387,7 +387,7 @@ export class PhrasesController {
   }
 
   @Patch(':id/status')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.MEMBER)
+  @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_OWNER, Role.MEMBER)
   @RequirePermission('canEditPhrases')
   @ApiOperation({ summary: 'Update the status of a phrase' })
   @ApiParam({ name: 'id', description: 'Phrase ID' })
@@ -402,7 +402,7 @@ export class PhrasesController {
   }
 
   @Post('batch')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.MEMBER)
+  @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_OWNER, Role.MEMBER)
   @RequirePermission('canEditPhrases')
   @ApiOperation({ summary: 'Perform batch operations on phrases' })
   @ApiBody({ type: BatchOperationDto })
@@ -423,7 +423,7 @@ export class PhrasesController {
   }
 
   @Get('export')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.MEMBER)
+  @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_OWNER, Role.MEMBER)
   @RequirePermission('canExportData')
   @ApiOperation({ summary: 'Export phrases to a file' })
   @ApiQuery({ name: 'project', required: true, description: 'Project ID' })
@@ -471,7 +471,7 @@ export class PhrasesController {
   }
 
   @Post('import')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_OWNER)
   @RequirePermission('canCreatePhrases')
   @ApiOperation({ summary: 'Import phrases from a file' })
   @ApiConsumes('multipart/form-data')

@@ -71,7 +71,7 @@ export class RolePermissionsService {
    */
   getPermissionsForRole(role: string): Record<string, boolean> {
     switch (role) {
-      case Role.OWNER:
+      case Role.COMPANY_OWNER:
         return {
           // User management
           canManageUsers: true,
@@ -107,7 +107,7 @@ export class RolePermissionsService {
           canExportData: true,
         };
 
-      case Role.ADMIN:
+      case Role.SYSTEM_ADMIN:
         return {
           // User management
           canManageUsers: true,
@@ -143,7 +143,7 @@ export class RolePermissionsService {
           canExportData: true,
         };
 
-      case Role.MANAGER:
+      case Role.COMPANY_OWNER:
         return {
           // User management
           canManageUsers: false,

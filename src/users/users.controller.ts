@@ -62,7 +62,7 @@ export class UsersController {
   }
 
   @Put(':id')
-  @Roles(Role.ADMIN, Role.OWNER)
+  @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_OWNER)
   @RequirePermission('canManageUsers')
   @ApiOperation({ summary: 'Update a user' })
   @ApiParam({ name: 'id', description: 'User ID' })
@@ -72,7 +72,7 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @Roles(Role.SYSTEM_ADMIN)
   @RequirePermission('canRemoveUsers')
   @ApiOperation({ summary: 'Delete a user' })
   @ApiParam({ name: 'id', description: 'User ID' })
@@ -82,7 +82,7 @@ export class UsersController {
   }
 
   @Patch(':id/company/:companyId')
-  @Roles(Role.ADMIN, Role.OWNER)
+  @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_OWNER)
   @RequirePermission('canManageUsers')
   @ApiOperation({ summary: 'Set the company for a user' })
   @ApiParam({ name: 'id', description: 'User ID' })
@@ -98,7 +98,7 @@ export class UsersController {
   // NEW PERMISSION MANAGEMENT ENDPOINTS
 
   @Get(':id/permissions')
-  @Roles(Role.ADMIN, Role.OWNER)
+  @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_OWNER)
   @RequirePermission('canManageUsers')
   @ApiOperation({ summary: 'Get user permissions with role defaults' })
   @ApiParam({ name: 'id', description: 'User ID' })
@@ -128,7 +128,7 @@ export class UsersController {
   }
 
   @Patch(':id/permissions')
-  @Roles(Role.ADMIN, Role.OWNER)
+  @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_OWNER)
   @RequirePermission('canManageUsers')
   @ApiOperation({ summary: 'Update user permissions' })
   @ApiParam({ name: 'id', description: 'User ID' })
@@ -144,7 +144,7 @@ export class UsersController {
   }
 
   @Post(':id/permissions/reset')
-  @Roles(Role.ADMIN, Role.OWNER)
+  @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_OWNER)
   @RequirePermission('canManageUsers')
   @ApiOperation({ summary: 'Reset user permissions to role defaults' })
   @ApiParam({ name: 'id', description: 'User ID' })
@@ -157,7 +157,7 @@ export class UsersController {
   }
 
   @Get('roles/:role/permissions')
-  @Roles(Role.ADMIN, Role.OWNER)
+  @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_OWNER)
   @RequirePermission('canManageUsers')
   @ApiOperation({ summary: 'Get default permissions for a role' })
   @ApiParam({ name: 'role', description: 'Role name', enum: Role })

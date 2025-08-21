@@ -20,14 +20,14 @@ export class CacheController {
 
   @Get('metrics')
   @ApiOperation({ summary: 'Get cache metrics' })
-  @Roles(Role.ADMIN)
+  @Roles(Role.SYSTEM_ADMIN)
   getMetrics() {
     return this.cacheMetricsService.getMetrics();
   }
 
   @Delete('flush')
   @ApiOperation({ summary: 'Flush all cache' })
-  @Roles(Role.ADMIN)
+  @Roles(Role.SYSTEM_ADMIN)
   async flushAll() {
     await this.cacheService.reset();
     return { message: 'Cache flushed successfully' };
@@ -35,7 +35,7 @@ export class CacheController {
 
   @Delete('pattern/:pattern')
   @ApiOperation({ summary: 'Delete cache by pattern' })
-  @Roles(Role.ADMIN)
+  @Roles(Role.SYSTEM_ADMIN)
   async deleteByPattern(@Param('pattern') pattern: string) {
     await this.cacheService.reset(pattern);
     return { message: `Cache cleared for pattern: ${pattern}` };

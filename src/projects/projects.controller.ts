@@ -39,7 +39,7 @@ export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 
   @Post()
-  @Roles(Role.ADMIN, Role.OWNER, Role.MANAGER)
+  @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_OWNER, Role.COMPANY_OWNER)
   @RequirePermission('canCreateProjects')
   @ApiOperation({ summary: 'Create a new project' })
   @ApiBody({ type: CreateProjectDto })
@@ -138,7 +138,7 @@ export class ProjectsController {
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN, Role.OWNER, Role.MANAGER)
+  @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_OWNER, Role.COMPANY_OWNER)
   @RequirePermission('canManageProjects')
   @ApiOperation({ summary: 'Update project by ID' })
   @ApiParam({ name: 'id', description: 'Project ID' })
@@ -163,7 +163,7 @@ export class ProjectsController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN, Role.OWNER)
+  @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_OWNER)
   @RequirePermission('canArchiveProjects')
   @ApiOperation({ summary: 'Delete project by ID' })
   @ApiParam({ name: 'id', description: 'Project ID' })
@@ -184,7 +184,7 @@ export class ProjectsController {
   }
 
   @Post(':id/members/:userId')
-  @Roles(Role.ADMIN, Role.OWNER, Role.MANAGER)
+  @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_OWNER, Role.COMPANY_OWNER)
   @RequirePermission('canManageProjects')
   @ApiOperation({ summary: 'Add member to project' })
   @ApiParam({ name: 'id', description: 'Project ID' })
@@ -206,7 +206,7 @@ export class ProjectsController {
   }
 
   @Delete(':id/members/:userId')
-  @Roles(Role.ADMIN, Role.OWNER, Role.MANAGER)
+  @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_OWNER, Role.COMPANY_OWNER)
   @RequirePermission('canManageProjects')
   @ApiOperation({ summary: 'Remove member from project' })
   @ApiParam({ name: 'id', description: 'Project ID' })
@@ -229,7 +229,7 @@ export class ProjectsController {
   }
 
   @Patch(':id/settings')
-  @Roles(Role.ADMIN, Role.OWNER, Role.MANAGER)
+  @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_OWNER, Role.COMPANY_OWNER)
   @RequirePermission('canManageProjects')
   @ApiOperation({ summary: 'Update project settings' })
   @ApiParam({ name: 'id', description: 'Project ID' })
