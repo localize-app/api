@@ -256,6 +256,54 @@ export class PhrasesController {
   }
 
   // Update the existing findAll method's query parameters
+  @Get('export')
+  @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_OWNER, Role.MEMBER)
+  @RequirePermission('canExportData')
+  @ApiOperation({ summary: 'Export phrases to a file' })
+  @ApiQuery({ name: 'project', required: true, description: 'Project ID' })
+  @ApiQuery({
+    name: 'format',
+    required: false,
+    description: 'Export format (json, csv, xlsx)',
+    enum: ['json', 'csv', 'xlsx'],
+  })
+  @ApiQuery({
+    name: 'locales',
+    required: false,
+    description: 'Locale codes to include, comma-separated',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    description: 'Status to include, comma-separated',
+  })
+  @ApiResponse({ status: 200, description: 'File successfully generated.' })
+  async exportPhrases(
+    @Res() res: Response,
+    @Query('project') projectId: string,
+    @Query('format') format: string = 'json',
+    @Query('locales') localesParam?: string,
+    @Query('status') statusParam?: string,
+  ) {
+    // Parse comma-separated params into arrays
+    const locales = localesParam ? localesParam.split(',') : undefined;
+    const status = statusParam ? statusParam.split(',') : undefined;
+
+    // Get file content from service
+    const { data, filename, mimeType } =
+      await this.phrasesService.exportPhrases(
+        projectId,
+        format as 'json' | 'csv' | 'xlsx',
+        { locales, status },
+      );
+
+    // Set response headers and return the file
+    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+    res.setHeader('Content-Type', mimeType);
+
+    return res.send(data);
+  }
+
   @Get()
   @ApiOperation({ summary: 'Get all phrases with optional filtering' })
   @ApiQuery({
@@ -420,54 +468,6 @@ export class PhrasesController {
   })
   async batchOperation(@Body() batchDto: BatchOperationDto) {
     return this.phrasesService.processBatch(batchDto);
-  }
-
-  @Get('export')
-  @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_OWNER, Role.MEMBER)
-  @RequirePermission('canExportData')
-  @ApiOperation({ summary: 'Export phrases to a file' })
-  @ApiQuery({ name: 'project', required: true, description: 'Project ID' })
-  @ApiQuery({
-    name: 'format',
-    required: false,
-    description: 'Export format (json, csv, xlsx)',
-    enum: ['json', 'csv', 'xlsx'],
-  })
-  @ApiQuery({
-    name: 'locales',
-    required: false,
-    description: 'Locale codes to include, comma-separated',
-  })
-  @ApiQuery({
-    name: 'status',
-    required: false,
-    description: 'Status to include, comma-separated',
-  })
-  @ApiResponse({ status: 200, description: 'File successfully generated.' })
-  async exportPhrases(
-    @Res() res: Response,
-    @Query('project') projectId: string,
-    @Query('format') format: string = 'json',
-    @Query('locales') localesParam?: string,
-    @Query('status') statusParam?: string,
-  ) {
-    // Parse comma-separated params into arrays
-    const locales = localesParam ? localesParam.split(',') : undefined;
-    const status = statusParam ? statusParam.split(',') : undefined;
-
-    // Get file content from service
-    const { data, filename, mimeType } =
-      await this.phrasesService.exportPhrases(
-        projectId,
-        format as 'json' | 'csv' | 'xlsx',
-        { locales, status },
-      );
-
-    // Set response headers and return the file
-    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
-    res.setHeader('Content-Type', mimeType);
-
-    return res.send(data);
   }
 
   @Post('import')

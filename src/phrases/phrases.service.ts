@@ -1000,28 +1000,53 @@ export class PhrasesService {
         project: projectId,
       };
 
-      // Add status filter if provided
-      if (options?.status && options.status.length > 0) {
-        filter.status = { $in: options.status };
-      }
-
-      // Get phrases
+      // Get phrases (no status filter at phrase level since status is per translation)
       const phrases = await this.phraseModel
         .find(filter)
         .populate('project')
         .exec();
 
+      this.logger.debug(`Found ${phrases.length} phrases for export with filter:`, filter);
+
+      // Filter by translation status after retrieval if needed
+      let filteredPhrases = phrases;
+      if (options?.status && options.status.length > 0 && options?.locales && options.locales.length > 0) {
+        filteredPhrases = phrases.filter(phrase => {
+          const phraseObj = phrase.toObject();
+          // Check if any of the requested locales has one of the requested statuses
+          return options.locales!.some(locale => {
+            const translation = phraseObj.translations?.get?.(locale);
+            return translation && options.status!.includes(translation.status);
+          });
+        });
+        this.logger.debug(`Filtered to ${filteredPhrases.length} phrases based on translation status`);
+      }
+
       // Transform data for export
-      const exportData = phrases.map((phrase) => {
+      const exportData = filteredPhrases.map((phrase, index) => {
+        if (index === 0) {
+          // Log the first phrase structure for debugging
+          this.logger.debug('First phrase structure:', {
+            phraseKeys: Object.keys(phrase.toObject()),
+            phraseId: phrase._id,
+            phraseIdType: typeof phrase._id
+          });
+        }
         const phraseObj = phrase.toObject();
         const exportItem: any = {
-          id: phraseObj._id.toString(),
-          key: phraseObj.key,
-          sourceText: phraseObj.sourceText,
+          id: (phraseObj.id || phrase._id?.toString())|| 'unknown',
+          key: phraseObj.key || '',
+          sourceText: phraseObj.sourceText || '',
           context: phraseObj.context || '',
-          isArchived: phraseObj.isArchived,
+          isArchived: phraseObj.isArchived || false,
           tags: phraseObj.tags || [],
         };
+
+        this.logger.debug(`Processing phrase:`, {
+          id: exportItem.id,
+          key: exportItem.key,
+          hasTranslations: !!phraseObj.translations
+        });
 
         // Add translations if requested
         if (options?.locales && options.locales.length > 0) {
@@ -1071,7 +1096,6 @@ export class PhrasesService {
           break;
 
         case 'csv':
-        case 'csv':
           // Convert to CSV format
           const csvData: any[] = [];
 
@@ -1089,7 +1113,6 @@ export class PhrasesService {
             'key',
             'sourceText',
             'context',
-            'status',
             'isArchived',
             'tags',
           ];
@@ -1115,9 +1138,8 @@ export class PhrasesService {
               phrase.key,
               phrase.sourceText,
               phrase.context,
-              phrase.status,
               phrase.isArchived,
-              phrase.tags.join(','),
+              Array.isArray(phrase.tags) ? phrase.tags.join(',') : '',
             ];
 
             // Add translation data for each locale

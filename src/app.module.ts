@@ -5,7 +5,6 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { AuthModule } from './auth/auth.module';
-import { AppConfigModule } from './config/config.module';
 import { CacheModule } from './cache/cache.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
@@ -13,18 +12,22 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { CompaniesModule } from './companies/companies.module';
 import { ProjectsModule } from './projects/projects.module';
 import { UsersModule } from './users/users.module';
-import { LocalesModule } from './locales/locales.module';
 import { PhrasesModule } from './phrases/phrases.module';
-import { ActivitiesModule } from './activities/activities.module';
-import { StyleGuidesModule } from './style-guides/style-guides.module';
-import { GlossaryTermsModule } from './glossary-terms/glossary-terms.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { AuthorizationGuard } from './auth/guards/auth.guard';
 import { TranslationsModule } from './translations/translations.module';
+import { ActivitiesModule } from './activities/activities.module';
+import { AppConfigModule } from './config/config.module';
+import { GlossaryTermsModule } from './glossary-terms/glossary-terms.module';
+import { IntegrationsModule } from './integrations/integrations.module';
+import { LocalesModule } from './locales/locales.module';
+import { StyleGuidesModule } from './style-guides/style-guides.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
-    // Config module should be first to ensure environment variables are loaded
-    AppConfigModule,
+    // Config module from NestJS for environment variables
+    ConfigModule.forRoot({ isGlobal: true }),
 
     // Cache module - available globally
     CacheModule,
@@ -54,12 +57,16 @@ import { TranslationsModule } from './translations/translations.module';
     CompaniesModule,
     ProjectsModule,
     UsersModule,
-    LocalesModule,
     PhrasesModule,
-    ActivitiesModule,
-    StyleGuidesModule,
-    GlossaryTermsModule,
+    DashboardModule,
     TranslationsModule,
+    ActivitiesModule,
+    AppConfigModule,
+    GlossaryTermsModule,
+    IntegrationsModule,
+    LocalesModule,
+    StyleGuidesModule,
+    HealthModule,
   ],
   controllers: [],
   providers: [
