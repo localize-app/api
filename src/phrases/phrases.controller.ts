@@ -528,4 +528,31 @@ export class PhrasesController {
   async extractPhrases(@Body() extractDto: ExtractPhrasesDto) {
     return this.phrasesService.batchExtract(extractDto);
   }
+
+  @Post(':id/translations/:locale/review')
+  @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_OWNER, Role.MEMBER)
+  @RequirePermission('canReviewTranslations')
+  @ApiOperation({
+    summary: 'Review a translation (approve/reject/request review)',
+  })
+  @ApiParam({ name: 'id', description: 'Phrase ID' })
+  @ApiParam({ name: 'locale', description: 'Locale code (e.g., fr-CA)' })
+  async reviewTranslation(
+    @Param('id') id: string,
+    @Param('locale') locale: string,
+    @Body()
+    body: {
+      action: 'approve' | 'reject' | 'request_review';
+      comments?: string;
+      reviewerId: string;
+    },
+  ) {
+    return this.phrasesService.reviewTranslation(
+      id,
+      locale,
+      body.action,
+      body.reviewerId,
+      body.comments,
+    );
+  }
 }

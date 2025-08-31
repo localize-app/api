@@ -188,7 +188,7 @@ export class PhrasesService {
           $addFields: {
             translationsArray: { $objectToArray: '$translations' },
             hasAnyTranslation: {
-              $gt: [{ $size: { $ifNull: ['$translations', []] } }, 0],
+              $gt: [{ $size: { $objectToArray: { $ifNull: ['$translations', {}] } } }, 0],
             },
           },
         });
@@ -782,7 +782,14 @@ export class PhrasesService {
   async updateStatus(id: string, statusDto: UpdateStatusDto): Promise<Phrase> {
     try {
       const updatedPhrase = await this.phraseModel
-        .findByIdAndUpdate(id, { status: statusDto.status }, { new: true })
+        .findByIdAndUpdate(
+          id,
+          {
+            status: statusDto.status,
+            updatedAt: new Date(),
+          },
+          { new: true },
+        )
         .populate('project')
         .exec();
 
@@ -1006,20 +1013,30 @@ export class PhrasesService {
         .populate('project')
         .exec();
 
-      this.logger.debug(`Found ${phrases.length} phrases for export with filter:`, filter);
+      this.logger.debug(
+        `Found ${phrases.length} phrases for export with filter:`,
+        filter,
+      );
 
       // Filter by translation status after retrieval if needed
       let filteredPhrases = phrases;
-      if (options?.status && options.status.length > 0 && options?.locales && options.locales.length > 0) {
-        filteredPhrases = phrases.filter(phrase => {
+      if (
+        options?.status &&
+        options.status.length > 0 &&
+        options?.locales &&
+        options.locales.length > 0
+      ) {
+        filteredPhrases = phrases.filter((phrase) => {
           const phraseObj = phrase.toObject();
           // Check if any of the requested locales has one of the requested statuses
-          return options.locales!.some(locale => {
+          return options.locales!.some((locale) => {
             const translation = phraseObj.translations?.get?.(locale);
             return translation && options.status!.includes(translation.status);
           });
         });
-        this.logger.debug(`Filtered to ${filteredPhrases.length} phrases based on translation status`);
+        this.logger.debug(
+          `Filtered to ${filteredPhrases.length} phrases based on translation status`,
+        );
       }
 
       // Transform data for export
@@ -1029,12 +1046,12 @@ export class PhrasesService {
           this.logger.debug('First phrase structure:', {
             phraseKeys: Object.keys(phrase.toObject()),
             phraseId: phrase._id,
-            phraseIdType: typeof phrase._id
+            phraseIdType: typeof phrase._id,
           });
         }
         const phraseObj = phrase.toObject();
         const exportItem: any = {
-          id: (phraseObj.id || phrase._id?.toString())|| 'unknown',
+          id: phraseObj.id || phrase._id?.toString() || 'unknown',
           key: phraseObj.key || '',
           sourceText: phraseObj.sourceText || '',
           context: phraseObj.context || '',
@@ -1045,7 +1062,7 @@ export class PhrasesService {
         this.logger.debug(`Processing phrase:`, {
           id: exportItem.id,
           key: exportItem.key,
-          hasTranslations: !!phraseObj.translations
+          hasTranslations: !!phraseObj.translations,
         });
 
         // Add translations if requested
@@ -2081,5 +2098,61 @@ export class PhrasesService {
     }
 
     return changedPhrases;
+  }
+
+  /**
+   * Review workflow - Update translation status with review info
+   */
+  async reviewTranslation(
+    phraseId: string,
+    locale: string,
+    action: 'approve' | 'reject' | 'request_review',
+    reviewerId: string,
+    comments?: string,
+  ) {
+    try {
+      const phrase = await this.phraseModel.findById(phraseId).exec();
+      if (!phrase) {
+        throw new NotFoundException(`Phrase with ID ${phraseId} not found`);
+      }
+
+      const translation = phrase.translations.get(locale);
+      if (!translation) {
+        throw new NotFoundException(
+          `Translation for locale ${locale} not found`,
+        );
+      }
+
+      // Update status based on action
+      let newStatus: TranslationStatus;
+      switch (action) {
+        case 'approve':
+          newStatus = TranslationStatus.APPROVED;
+          break;
+        case 'reject':
+          newStatus = TranslationStatus.REJECTED;
+          break;
+        case 'request_review':
+          newStatus = TranslationStatus.NEEDS_REVIEW;
+          break;
+      }
+
+      // Update translation with review info
+      translation.status = newStatus;
+      translation.reviewedAt = new Date();
+      translation.reviewedBy = new Types.ObjectId(reviewerId) as any;
+      translation.reviewComments = comments;
+
+      phrase.translations.set(locale, translation);
+      await phrase.save();
+
+      return phrase;
+    } catch (error) {
+      this.logger.error(
+        `Failed to review translation: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
   }
 }

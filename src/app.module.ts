@@ -5,6 +5,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { AuthModule } from './auth/auth.module';
+import { TenantMiddleware } from './auth/middleware/tenant.middleware';
 import { CacheModule } from './cache/cache.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
@@ -23,6 +24,7 @@ import { IntegrationsModule } from './integrations/integrations.module';
 import { LocalesModule } from './locales/locales.module';
 import { StyleGuidesModule } from './style-guides/style-guides.module';
 import { HealthModule } from './health/health.module';
+import { MiddlewareConsumer, NestModule } from '@nestjs/common';
 
 @Module({
   imports: [
@@ -84,4 +86,8 @@ import { HealthModule } from './health/health.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(TenantMiddleware).forRoutes('*');
+  }
+}

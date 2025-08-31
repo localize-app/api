@@ -32,6 +32,17 @@ export class AuthController {
     return this.authService.register(registerDto);
   }
 
+  @ApiOperation({ summary: 'Refresh access token' })
+  @ApiResponse({
+    status: 200,
+    description: 'Return new access and refresh tokens',
+  })
+  @Public()
+  @Post('refresh')
+  async refresh(@Body('refresh_token') refreshToken: string) {
+    return this.authService.refreshToken(refreshToken);
+  }
+
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiResponse({ status: 200, description: 'Return the current user profile' })
   @Get('profile')

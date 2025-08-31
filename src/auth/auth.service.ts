@@ -54,8 +54,34 @@ export class AuthService {
         permissions: user.permissions,
         company: user.company,
       },
-      access_token: this.jwtService.sign(payload),
+      access_token: this.jwtService.sign(payload, { expiresIn: '15m' }),
+      refresh_token: this.jwtService.sign(
+        { sub: user._id, email: user.email },
+        { expiresIn: '7d' },
+      ),
     };
+  }
+
+  async refreshToken(refreshToken: string) {
+    try {
+      const payload = this.jwtService.verify(refreshToken);
+      const user = await this.usersService.findByEmail(payload.email);
+
+      if (!user) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+
+      const newPayload = { sub: user._id, email: user.email, role: user.role };
+      return {
+        access_token: this.jwtService.sign(newPayload, { expiresIn: '15m' }),
+        refresh_token: this.jwtService.sign(
+          { sub: user._id, email: user.email },
+          { expiresIn: '7d' },
+        ),
+      };
+    } catch (error) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
   }
 
   async register(registerDto: RegisterDto) {

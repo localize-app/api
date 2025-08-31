@@ -22,6 +22,7 @@ import { CompaniesService } from './companies.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequirePermission } from '../auth/decorators/permission.decorator';
 import { Role } from 'src/common/enums/role.enum';
 import { CompanyWithUsersDto } from './dto/company-with-users.dto';
 
@@ -33,6 +34,7 @@ export class CompaniesController {
 
   @Post()
   @Roles(Role.SYSTEM_ADMIN)
+  @RequirePermission('canManageCompanies')
   @ApiOperation({ summary: 'Create a new company' })
   @ApiResponse({
     status: 201,
@@ -44,6 +46,8 @@ export class CompaniesController {
   }
 
   @Get()
+  @Roles(Role.SYSTEM_ADMIN)
+  @RequirePermission('canViewCompanies')
   @ApiOperation({ summary: 'Get all companies with their users' })
   @ApiResponse({
     status: 200,
