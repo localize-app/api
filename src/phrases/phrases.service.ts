@@ -499,6 +499,132 @@ export class PhrasesService {
     return stats;
   }
   /**
+   * Advanced search with multiple filters
+   */
+  async searchPhrases(
+    projectId: string,
+    searchParams: {
+      text?: string;
+      key?: string;
+      context?: string;
+      tags?: string[];
+      translationStatus?: string;
+      locale?: string;
+      hasTranslation?: boolean;
+      dateRange?: { from?: Date; to?: Date };
+      page?: number;
+      limit?: number;
+    },
+  ): Promise<{ phrases: Phrase[]; total: number }> {
+    const {
+      text,
+      key,
+      context,
+      tags,
+      translationStatus,
+      locale,
+      hasTranslation,
+      dateRange,
+      page = 1,
+      limit = 20,
+    } = searchParams;
+
+    const skip = (page - 1) * limit;
+    const pipeline: any[] = [
+      { $match: { project: new Types.ObjectId(projectId), isArchived: false } },
+    ];
+
+    // Text search across multiple fields
+    if (text) {
+      const escapedText = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      pipeline.push({
+        $match: {
+          $or: [
+            { sourceText: { $regex: escapedText, $options: 'i' } },
+            { key: { $regex: escapedText, $options: 'i' } },
+            { context: { $regex: escapedText, $options: 'i' } },
+          ],
+        },
+      });
+    }
+
+    // Specific field searches
+    if (key) {
+      pipeline.push({ $match: { key: { $regex: key, $options: 'i' } } });
+    }
+
+    if (context) {
+      pipeline.push({ $match: { context: { $regex: context, $options: 'i' } } });
+    }
+
+    // Tag filtering
+    if (tags && tags.length > 0) {
+      pipeline.push({ $match: { tags: { $in: tags } } });
+    }
+
+    // Date range filtering
+    if (dateRange) {
+      const dateFilter: any = {};
+      if (dateRange.from) dateFilter.$gte = new Date(dateRange.from);
+      if (dateRange.to) dateFilter.$lte = new Date(dateRange.to);
+      if (Object.keys(dateFilter).length > 0) {
+        pipeline.push({ $match: { updatedAt: dateFilter } });
+      }
+    }
+
+    // Translation filtering
+    if (locale || translationStatus || hasTranslation !== undefined) {
+      pipeline.push({
+        $addFields: {
+          translationsArray: { $objectToArray: '$translations' },
+        },
+      });
+
+      if (locale && translationStatus) {
+        pipeline.push({
+          $match: {
+            [`translations.${locale}.status`]: translationStatus,
+          },
+        });
+      } else if (hasTranslation === false) {
+        pipeline.push({
+          $match: {
+            $or: [
+              { translations: { $exists: false } },
+              { translations: {} },
+              { translationsArray: { $size: 0 } },
+            ],
+          },
+        });
+      } else if (hasTranslation === true) {
+        pipeline.push({
+          $match: { translationsArray: { $not: { $size: 0 } } },
+        });
+      }
+    }
+
+    // Get total count and paginated results
+    pipeline.push({
+      $facet: {
+        phrases: [
+          { $skip: skip },
+          { $limit: limit },
+          { $lookup: { from: 'projects', localField: 'project', foreignField: '_id', as: 'project' } },
+          { $unwind: '$project' },
+          { $project: { translationsArray: 0 } },
+        ],
+        totalCount: [{ $count: 'count' }],
+      },
+    });
+
+    const [result] = await this.phraseModel.aggregate(pipeline).exec();
+    const phrases = result?.phrases || [];
+    const total = result?.totalCount?.[0]?.count || 0;
+
+    return { phrases, total };
+  }
+
+  /**
    * Find all phrases with optional filtering
    */
   async findAll(

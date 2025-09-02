@@ -1,5 +1,6 @@
 // import * as fs from 'fs';
 import helmet from 'helmet';
+import * as cookieParser from 'cookie-parser';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
@@ -13,6 +14,9 @@ async function bootstrap() {
 
   // Security middleware
   app.use(helmet());
+  
+  // CRITICAL: Cookie parser middleware for httpOnly cookies
+  app.use(cookieParser());
 
   // Set up global validation pipe
   app.useGlobalPipes(
@@ -23,15 +27,30 @@ async function bootstrap() {
     }),
   );
 
-  // Enable CORS
+  // SECURITY: Enable CORS with strict configuration
+  const corsOrigin = configService.get<string>('CORS_ORIGIN');
+  const allowedOrigins = corsOrigin
+    ? corsOrigin.split(',').map((origin) => origin.trim())
+    : [
+        'http://localhost:3001',
+        'http://localhost:5173', 
+        'http://localhost:8080',
+        'http://localhost:4173', // Vite preview
+        'http://localhost:3000', // If frontend is on 3000
+      ]; // Default dev origins
+
   app.enableCors({
-    origin: configService.get<string>('CORS_ORIGIN', '*'),
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    origin: allowedOrigins,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Accept',
+      'Authorization',
+      'X-Requested-With',
+    ],
+    credentials: true, // Required for httpOnly cookies
     preflightContinue: false,
     optionsSuccessStatus: 204,
-    credentials: true,
-    // origin: true,
-    // allowedHeaders: 'Content-Type,Accept,Authorization,X-Project-Key',
   });
 
   // Set up Swagger documentation

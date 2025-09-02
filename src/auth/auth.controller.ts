@@ -1,6 +1,16 @@
-import { Request } from 'express';
-import { Controller, Post, Body, UseGuards, Req, Get } from '@nestjs/common';
+import { Request, Response } from 'express';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Req,
+  Get,
+  Res,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBody, ApiResponse } from '@nestjs/swagger';
+import { ThrottlerGuard } from '@nestjs/throttler';
 
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
@@ -14,13 +24,16 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Public() // Mark as public so it's accessible without authentication
+  @UseGuards(LocalAuthGuard) // Rate limit login attempts
   @ApiOperation({ summary: 'User login' })
   @ApiBody({ type: LoginDto })
-  @ApiResponse({ status: 200, description: 'Return JWT token and user data' })
-  @UseGuards(LocalAuthGuard)
+  @ApiResponse({
+    status: 200,
+    description: 'Return user data and set secure cookies',
+  })
   @Post('login')
-  async login(@Req() req: Request) {
-    return this.authService.login(req.user);
+  async login(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    return this.authService.login(req.user, res);
   }
 
   @Public() // Mark as public so it's accessible without authentication
@@ -35,12 +48,36 @@ export class AuthController {
   @ApiOperation({ summary: 'Refresh access token' })
   @ApiResponse({
     status: 200,
-    description: 'Return new access and refresh tokens',
+    description: 'Return user data and set new secure cookies',
   })
+  @UseGuards(ThrottlerGuard) // Rate limit refresh attempts
   @Public()
   @Post('refresh')
-  async refresh(@Body('refresh_token') refreshToken: string) {
-    return this.authService.refreshToken(refreshToken);
+  async refresh(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const refreshToken = req.cookies?.refresh_token;
+    const userId = (req.user as any)?._id || req.body?.userId;
+
+    if (!refreshToken) {
+      throw new UnauthorizedException('Refresh token not provided');
+    }
+
+    return this.authService.refreshToken(refreshToken, res, userId);
+  }
+
+  @ApiOperation({ summary: 'Logout user' })
+  @ApiResponse({ status: 200, description: 'User logged out successfully' })
+  @Post('logout')
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const accessToken = req.cookies?.access_token;
+    const refreshToken = req.cookies?.refresh_token;
+    const userId = (req.user as any)?._id;
+
+    await this.authService.logout(accessToken, refreshToken, res, userId);
+
+    return { message: 'Logged out successfully' };
   }
 
   @ApiOperation({ summary: 'Get current user profile' })

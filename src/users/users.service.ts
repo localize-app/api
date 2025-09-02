@@ -199,6 +199,31 @@ export class UsersService {
     }
   }
 
+  // SECURITY: Increment token version to invalidate all user sessions
+  async incrementTokenVersion(id: string): Promise<User> {
+    try {
+      const updatedUser = await this.userModel
+        .findByIdAndUpdate(id, { $inc: { tokenVersion: 1 } }, { new: true })
+        .populate('company')
+        .exec();
+
+      if (!updatedUser) {
+        throw new NotFoundException(`User with ID ${id} not found`);
+      }
+
+      this.logger.log(
+        `Token version incremented for user ${id}, new version: ${updatedUser.tokenVersion}`,
+      );
+      return updatedUser;
+    } catch (error) {
+      this.logger.error(
+        `Failed to increment token version: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
   // Reset user permissions to role defaults (NEW METHOD)
   async resetPermissionsToRoleDefaults(id: string): Promise<User> {
     try {

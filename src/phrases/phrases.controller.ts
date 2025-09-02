@@ -220,6 +220,53 @@ export class PhrasesController {
     }
   }
 
+  @Get('search/:projectId')
+  @ApiOperation({ summary: 'Advanced search phrases with filters' })
+  @ApiParam({ name: 'projectId', description: 'Project ID' })
+  @ApiQuery({ name: 'text', required: false, description: 'Search in sourceText, key, context' })
+  @ApiQuery({ name: 'key', required: false, description: 'Search in phrase key' })
+  @ApiQuery({ name: 'context', required: false, description: 'Search in context' })
+  @ApiQuery({ name: 'tags', required: false, description: 'Filter by tags (comma-separated)' })
+  @ApiQuery({ name: 'translationStatus', required: false, description: 'Translation status' })
+  @ApiQuery({ name: 'locale', required: false, description: 'Locale code' })
+  @ApiQuery({ name: 'hasTranslation', required: false, description: 'Has any translation (true/false)' })
+  @ApiQuery({ name: 'dateFrom', required: false, description: 'Date range from (ISO date)' })
+  @ApiQuery({ name: 'dateTo', required: false, description: 'Date range to (ISO date)' })
+  @ApiQuery({ name: 'page', required: false, description: 'Page number' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Items per page' })
+  async searchPhrases(
+    @Param('projectId') projectId: string,
+    @Query('text') text?: string,
+    @Query('key') key?: string,
+    @Query('context') context?: string,
+    @Query('tags') tags?: string,
+    @Query('translationStatus') translationStatus?: string,
+    @Query('locale') locale?: string,
+    @Query('hasTranslation') hasTranslation?: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const searchParams = {
+      text,
+      key,
+      context,
+      tags: tags ? tags.split(',') : undefined,
+      translationStatus,
+      locale,
+      hasTranslation: hasTranslation ? hasTranslation === 'true' : undefined,
+      dateRange: (dateFrom || dateTo) ? {
+        from: dateFrom ? new Date(dateFrom) : undefined,
+        to: dateTo ? new Date(dateTo) : undefined,
+      } : undefined,
+      page: page ? parseInt(page) : 1,
+      limit: limit ? parseInt(limit) : 20,
+    };
+
+    return this.phrasesService.searchPhrases(projectId, searchParams);
+  }
+
   @Get('stats/:projectId')
   @ApiOperation({ summary: 'Get phrase statistics for a project' })
   @ApiParam({ name: 'projectId', description: 'Project ID' })
@@ -447,6 +494,45 @@ export class PhrasesController {
     @Body() statusDto: UpdateStatusDto,
   ) {
     return this.phrasesService.updateStatus(id, statusDto);
+  }
+
+  @Patch(':id/translations/:locale/status')
+  @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_OWNER, Role.MEMBER)
+  @RequirePermission('canReviewTranslations')
+  @ApiOperation({ summary: 'Update translation status for a specific locale' })
+  @ApiParam({ name: 'id', description: 'Phrase ID' })
+  @ApiParam({ name: 'locale', description: 'Locale code (e.g., fr-CA)' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        status: {
+          type: 'string',
+          enum: ['pending', 'approved', 'rejected', 'needs_review'],
+          description: 'New translation status',
+        },
+        reviewComments: {
+          type: 'string',
+          description: 'Optional review comments',
+        },
+      },
+      required: ['status'],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Translation status successfully updated.',
+  })
+  @ApiResponse({ status: 404, description: 'Phrase or translation not found' })
+  async updateTranslationStatus(
+    @Param('id') id: string,
+    @Param('locale') locale: string,
+    @Body() statusData: { status: string; reviewComments?: string },
+  ) {
+    return this.phrasesService.updateTranslationStatus(id, locale, {
+      status: statusData.status as any,
+      reviewComments: statusData.reviewComments,
+    });
   }
 
   @Post('batch')

@@ -53,6 +53,10 @@ export class User extends BaseEntity {
   // NEW: Track when permissions were last updated
   @Prop({ type: Date })
   permissionsLastUpdated?: Date;
+
+  // SECURITY: Token version for invalidating all user sessions
+  @Prop({ default: 0 })
+  tokenVersion: number;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
