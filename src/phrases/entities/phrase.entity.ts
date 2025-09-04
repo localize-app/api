@@ -5,6 +5,7 @@ import { HydratedDocument } from 'mongoose';
 import * as crypto from 'crypto';
 
 import { Project } from '../../projects/entities/project.entity';
+import { Label } from '../../labels/entities/label.entity';
 import {
   BaseEntity,
   baseSchemaOptions,
@@ -89,6 +90,12 @@ export class Phrase extends BaseEntity {
 
   @Prop({ type: [String], default: [] })
   tags: string[];
+
+  @Prop({
+    type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Label' }],
+    default: [],
+  })
+  labels: Label[];
 
   @Prop({ type: Date })
   lastSeenAt?: Date;

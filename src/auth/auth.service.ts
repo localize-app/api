@@ -101,7 +101,7 @@ export class AuthService {
     }
   }
 
-  async refreshToken(refreshToken: string, response: Response, userId: string) {
+  async refreshToken(refreshToken: string, response: Response) {
     try {
       // Check if token is blacklisted first
       if (await this.tokenBlacklistService.isTokenBlacklisted(refreshToken)) {
@@ -167,7 +167,7 @@ export class AuthService {
 
       return {
         user: {
-          id: userId,
+          id: (user._id || user.id).toString(),
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,

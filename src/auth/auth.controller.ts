@@ -57,14 +57,20 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
+    // Debug logging to see what cookies are being sent
+    console.log('🍪 Refresh request cookies:', req.cookies);
+    console.log('📋 All headers:', req.headers);
+
     const refreshToken = req.cookies?.refresh_token;
-    const userId = (req.user as any)?._id || req.body?.userId;
 
     if (!refreshToken) {
+      console.log('❌ No refresh token found in cookies');
       throw new UnauthorizedException('Refresh token not provided');
     }
 
-    return this.authService.refreshToken(refreshToken, res, userId);
+    console.log('✅ Found refresh token, attempting refresh');
+    // Don't pass userId since it's extracted from the refresh token itself
+    return this.authService.refreshToken(refreshToken, res);
   }
 
   @ApiOperation({ summary: 'Logout user' })

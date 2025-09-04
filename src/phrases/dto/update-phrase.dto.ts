@@ -92,6 +92,17 @@ export class UpdatePhraseDto {
   tags?: string[];
 
   @ApiProperty({
+    description: 'Array of label IDs for the phrase',
+    type: [String],
+    required: false,
+    example: ['60f7b3b3b3b3b3b3b3b3b3b3', '60f7b3b3b3b3b3b3b3b3b3b4'],
+  })
+  @IsArray()
+  @IsMongoId({ each: true })
+  @IsOptional()
+  labels?: string[];
+
+  @ApiProperty({
     description: 'Source URL where the phrase is used',
     required: false,
     example: 'https://example.com/valuation/results',

@@ -23,6 +23,7 @@ import { GlossaryTermsModule } from './glossary-terms/glossary-terms.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { LocalesModule } from './locales/locales.module';
 import { StyleGuidesModule } from './style-guides/style-guides.module';
+import { LabelsModule } from './labels/labels.module';
 import { HealthModule } from './health/health.module';
 import { MiddlewareConsumer, NestModule } from '@nestjs/common';
 
@@ -68,6 +69,7 @@ import { MiddlewareConsumer, NestModule } from '@nestjs/common';
     IntegrationsModule,
     LocalesModule,
     StyleGuidesModule,
+    LabelsModule,
     HealthModule,
   ],
   controllers: [],

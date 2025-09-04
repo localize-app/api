@@ -25,6 +25,8 @@ import { BatchOperationDto } from './dto/batch-operation.dto';
 import { AddTranslationDto } from './dto/add-translation.dto';
 import { Translation, TranslationStatus } from './entities/translation.entity';
 import { ExtractPhrasesDto } from './dto/extract-phrases.dto';
+import { LabelsService } from '../labels/labels.service';
+import { Label } from '../labels/entities/label.entity';
 
 @Injectable()
 export class PhrasesService {
@@ -33,7 +35,114 @@ export class PhrasesService {
   constructor(
     @InjectModel(Phrase.name) private phraseModel: Model<PhraseDocument>,
     @InjectModel(Project.name) private projectModel: Model<ProjectDocument>,
+    private labelsService: LabelsService,
   ) {}
+
+  /**
+   * Automatically assign labels to phrases based on their characteristics
+   */
+  private async autoAssignLabels(
+    sourceText: string,
+    context?: string,
+    sourceUrl?: string,
+    companyId?: string,
+  ): Promise<string[]> {
+    if (!companyId) return [];
+
+    try {
+      // Get all available labels for the company
+      const availableLabels = await this.labelsService.findAll({ company: companyId });
+      const assignedLabelIds: string[] = [];
+
+      // Smart labeling rules based on content analysis
+      const lowerText = sourceText.toLowerCase();
+      const lowerContext = context?.toLowerCase() || '';
+      const url = sourceUrl?.toLowerCase() || '';
+
+      for (const label of availableLabels) {
+        const labelName = label.name.toLowerCase();
+        let shouldAssign = false;
+
+        // Category-based smart assignment
+        switch (label.category) {
+          case 'functional':
+            // Navigation labels
+            if (labelName.includes('navigation') || labelName.includes('menu')) {
+              shouldAssign = !!lowerText.match(/\b(home|about|contact|menu|nav|back|next|previous)\b/) ||
+                           lowerContext.includes('nav') ||
+                           url.includes('nav');
+            }
+            // Button labels  
+            else if (labelName.includes('button')) {
+              shouldAssign = !!lowerText.match(/\b(click|submit|save|cancel|ok|yes|no|apply|confirm|delete|add|edit|update|create)\b/) ||
+                           lowerContext.includes('button');
+            }
+            // Form labels
+            else if (labelName.includes('form')) {
+              shouldAssign = !!lowerText.match(/\b(name|email|password|username|login|register|sign|enter|input)\b/) ||
+                           lowerContext.includes('form') ||
+                           lowerContext.includes('input');
+            }
+            // Error labels
+            else if (labelName.includes('error')) {
+              shouldAssign = !!lowerText.match(/\b(error|failed|invalid|required|missing|wrong|incorrect)\b/) ||
+                           lowerContext.includes('error');
+            }
+            break;
+
+          case 'platform':
+            // Mobile labels
+            if (labelName.includes('mobile')) {
+              shouldAssign = url.includes('mobile') || 
+                           lowerContext.includes('mobile') ||
+                           lowerText.includes('tap');
+            }
+            // Desktop labels
+            else if (labelName.includes('desktop') || labelName.includes('web')) {
+              shouldAssign = lowerText.includes('click') || 
+                           url.includes('desktop') ||
+                           lowerContext.includes('desktop');
+            }
+            break;
+
+          case 'priority':
+            // High priority labels
+            if (labelName.includes('high') || labelName.includes('critical')) {
+              shouldAssign = !!lowerText.match(/\b(urgent|important|critical|required|mandatory|error)\b/) ||
+                           lowerContext.includes('critical');
+            }
+            // Low priority labels  
+            else if (labelName.includes('low')) {
+              shouldAssign = !!lowerText.match(/\b(optional|tip|hint|suggestion)\b/) ||
+                           lowerContext.includes('optional');
+            }
+            break;
+
+          case 'content-type':
+            // Marketing labels
+            if (labelName.includes('marketing')) {
+              shouldAssign = !!lowerText.match(/\b(buy|purchase|sale|discount|offer|deal|free|premium|upgrade)\b/);
+            }
+            // Help labels
+            else if (labelName.includes('help') || labelName.includes('support')) {
+              shouldAssign = !!lowerText.match(/\b(help|support|faq|guide|tutorial|how to|assistance)\b/) ||
+                           url.includes('help') ||
+                           url.includes('support');
+            }
+            break;
+        }
+
+        if (shouldAssign) {
+          assignedLabelIds.push(label._id);
+        }
+      }
+
+      return assignedLabelIds;
+    } catch (error) {
+      this.logger.warn(`Failed to auto-assign labels: ${error.message}`);
+      return [];
+    }
+  }
 
   async getTranslationsForLanguage(projectKey: string, langCode: string) {
     try {
@@ -347,6 +456,15 @@ export class PhrasesService {
                 preserveNullAndEmptyArrays: true,
               },
             },
+            // Populate labels reference
+            {
+              $lookup: {
+                from: 'labels',
+                localField: 'labels',
+                foreignField: '_id',
+                as: 'labels',
+              },
+            },
             // Clean up temporary fields and rename project
             {
               $addFields: {
@@ -637,6 +755,7 @@ export class PhrasesService {
       isArchived,
       search,
       tags,
+      labels,
       page = 1,
       limit = 20,
     } = query;
@@ -663,6 +782,11 @@ export class PhrasesService {
     if (tags) {
       const tagArray = Array.isArray(tags) ? tags : [tags];
       filter.tags = { $all: tagArray };
+    }
+
+    if (labels) {
+      const labelArray = Array.isArray(labels) ? labels : [labels];
+      filter.labels = { $in: labelArray };
     }
 
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
@@ -705,6 +829,14 @@ export class PhrasesService {
               {
                 $unwind: '$project',
               },
+              {
+                $lookup: {
+                  from: 'labels',
+                  localField: 'labels',
+                  foreignField: '_id',
+                  as: 'labels',
+                },
+              },
             ],
             totalCount: [{ $count: 'count' }],
           },
@@ -725,6 +857,7 @@ export class PhrasesService {
       const allPhrases = await this.phraseModel
         .find(filter)
         .populate('project')
+        .populate('labels')
         .exec();
 
       const filteredPhrases = allPhrases.filter((phrase) => {
@@ -758,6 +891,7 @@ export class PhrasesService {
       .skip(skip)
       .limit(parseInt(limit as string))
       .populate('project')
+      .populate('labels')
       .exec();
 
     return { phrases, total };
@@ -771,6 +905,7 @@ export class PhrasesService {
       const phrase = await this.phraseModel
         .findById(id)
         .populate('project')
+        .populate('labels')
         .exec();
 
       if (!phrase) {
@@ -792,27 +927,56 @@ export class PhrasesService {
    */
   async update(id: string, updatePhraseDto: UpdatePhraseDto): Promise<Phrase> {
     try {
-      // Check if changing key and if the new key already exists
-      if (updatePhraseDto.key) {
-        const phrase = await this.phraseModel.findById(id).exec();
+      // First, get the existing phrase to check current labels
+      const phrase = await this.phraseModel.findById(id).exec();
 
-        if (!phrase) {
-          throw new NotFoundException(`Phrase with ID ${id} not found`);
+      if (!phrase) {
+        throw new NotFoundException(`Phrase with ID ${id} not found`);
+      }
+
+      // Check if changing key and if the new key already exists
+      if (updatePhraseDto.key && phrase.key !== updatePhraseDto.key) {
+        const existingPhrase = await this.phraseModel
+          .findOne({
+            project: updatePhraseDto.project || phrase.project,
+            key: updatePhraseDto.key,
+            _id: { $ne: id },
+          })
+          .exec();
+
+        if (existingPhrase) {
+          throw new BadRequestException(
+            `A phrase with key '${updatePhraseDto.key}' already exists in this project`,
+          );
+        }
+      }
+
+      // Handle label usage count updates if labels are being changed
+      if (updatePhraseDto.labels !== undefined) {
+        const oldLabels = phrase.labels || [];
+        const newLabels = updatePhraseDto.labels || [];
+
+        // Convert to string arrays for comparison (in case they're ObjectIds)
+        const oldLabelIds = oldLabels.map((label: any) => typeof label === 'string' ? label : label.toString());
+        const newLabelIds = newLabels.map((label: any) => typeof label === 'string' ? label : label.toString());
+
+        // Find labels that were removed (decrement usage)
+        const removedLabels = oldLabelIds.filter(labelId => !newLabelIds.includes(labelId));
+        for (const labelId of removedLabels) {
+          try {
+            await this.labelsService.decrementUsage(labelId);
+          } catch (error) {
+            this.logger.warn(`Failed to decrement usage for label ${labelId}: ${error.message}`);
+          }
         }
 
-        if (phrase.key !== updatePhraseDto.key) {
-          const existingPhrase = await this.phraseModel
-            .findOne({
-              project: updatePhraseDto.project || phrase.project,
-              key: updatePhraseDto.key,
-              _id: { $ne: id },
-            })
-            .exec();
-
-          if (existingPhrase) {
-            throw new BadRequestException(
-              `A phrase with key '${updatePhraseDto.key}' already exists in this project`,
-            );
+        // Find labels that were added (increment usage)
+        const addedLabels = newLabelIds.filter(labelId => !oldLabelIds.includes(labelId));
+        for (const labelId of addedLabels) {
+          try {
+            await this.labelsService.incrementUsage(labelId);
+          } catch (error) {
+            this.logger.warn(`Failed to increment usage for label ${labelId}: ${error.message}`);
           }
         }
       }
@@ -820,6 +984,7 @@ export class PhrasesService {
       const updatedPhrase = await this.phraseModel
         .findByIdAndUpdate(id, updatePhraseDto, { new: true })
         .populate('project')
+        .populate('labels')
         .exec();
 
       if (!updatedPhrase) {
@@ -2016,6 +2181,14 @@ export class PhrasesService {
           });
 
           if (!phrase) {
+            // Auto-assign labels based on phrase characteristics
+            const autoLabels = await this.autoAssignLabels(
+              phraseDto.sourceText,
+              phraseDto.context,
+              extractDto.sourceUrl,
+              project.company.toString(),
+            );
+
             // Create new phrase
             phrase = new this.phraseModel({
               key: this.generatePhraseKey(phraseDto.sourceText),
@@ -2027,6 +2200,7 @@ export class PhrasesService {
               status: 'pending',
               sourceUrl: extractDto.sourceUrl,
               sourceType: extractDto.sourceType,
+              labels: autoLabels,
               lastSeenAt: new Date(),
               // Initialize occurrence data
               occurrences: {
@@ -2041,6 +2215,15 @@ export class PhrasesService {
               },
             });
             await phrase.save();
+
+            // Update usage count for assigned labels
+            if (autoLabels.length > 0) {
+              await Promise.all(
+                autoLabels.map(labelId => 
+                  this.labelsService.incrementUsage(labelId)
+                )
+              );
+            }
             return {
               created: true,
               id: phrase._id,

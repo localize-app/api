@@ -16,6 +16,7 @@ import { PhrasesModule } from 'src/phrases/phrases.module';
 import { ProjectsModule } from 'src/projects/projects.module';
 import { ProjectsService } from 'src/projects/projects.service';
 import { CacheModule } from 'src/cache/cache.module'; // Import CacheModule
+import { LabelsModule } from 'src/labels/labels.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { CacheModule } from 'src/cache/cache.module'; // Import CacheModule
     CacheModule, // Add CacheModule
     PhrasesModule,
     ProjectsModule,
+    LabelsModule,
   ],
   controllers: [TranslationsController],
   providers: [

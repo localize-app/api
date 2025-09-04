@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { PhrasesService } from './phrases.service';
 import { PhrasesController } from './phrases.controller';
 import { ProjectsModule } from 'src/projects/projects.module';
+import { LabelsModule } from 'src/labels/labels.module';
 import { Phrase, PhraseSchema } from './entities/phrase.entity';
 import { Project, ProjectSchema } from '../projects/entities/project.entity';
 
@@ -30,6 +31,7 @@ import { Project, ProjectSchema } from '../projects/entities/project.entity';
       },
     }),
     ProjectsModule,
+    LabelsModule,
   ],
   controllers: [PhrasesController],
   providers: [PhrasesService],
