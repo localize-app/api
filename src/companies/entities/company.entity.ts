@@ -27,6 +27,25 @@ export class Company extends BaseEntity {
   // NEW: Company-level permission settings
   @Prop({ type: CompanyPermissionSettingsSchema })
   permissionSettings?: CompanyPermissionSettings;
+
+  // Organization management fields
+  @Prop({ default: true })
+  isActive: boolean;
+
+  @Prop({ default: 10 })
+  maxProjects: number;
+
+  @Prop({ default: 50 })
+  maxTeamMembers: number;
+
+  @Prop({ default: Date.now })
+  activatedAt: Date;
+
+  @Prop()
+  deactivatedAt?: Date;
+
+  @Prop()
+  deactivatedBy?: mongoose.Schema.Types.ObjectId; // Reference to admin user who deactivated
 }
 
 export const CompanySchema = SchemaFactory.createForClass(Company);

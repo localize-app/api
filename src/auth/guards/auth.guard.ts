@@ -33,6 +33,17 @@ export class AuthorizationGuard implements CanActivate {
 
     const { user } = context.switchToHttp().getRequest();
 
+    // Debug logging
+    if (requiredPermission) {
+      console.log(`🔒 Auth Guard Debug:`, {
+        endpoint: context.switchToHttp().getRequest().url,
+        requiredPermission,
+        userRole: user?.role,
+        userPermissions: user?.permissions,
+        hasStoredPermissions: !!user?.permissions,
+      });
+    }
+
     // Check role-based access if required
     if (requiredRoles && requiredRoles.includes(user.role)) {
       return true;
@@ -40,11 +51,15 @@ export class AuthorizationGuard implements CanActivate {
 
     // Check permission-based access if required
     if (requiredPermission) {
-      return this.rolePermissionsService.hasPermission(
+      const hasPermission = this.rolePermissionsService.hasPermission(
         user.permissions, // This will now be the stored permissions from DB
         user.role,
         requiredPermission,
       );
+      
+      console.log(`🔒 Permission check result: ${hasPermission} for ${requiredPermission}`);
+      
+      return hasPermission;
     }
 
     return false;

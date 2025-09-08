@@ -72,8 +72,8 @@ export class UsersService {
   }
 
   // Get all users
-  async findAll(): Promise<User[]> {
-    return this.userModel.find().populate('company').exec();
+  async findAll(filters: any = {}): Promise<User[]> {
+    return this.userModel.find(filters).populate('company').exec();
   }
 
   // Get a specific user by ID

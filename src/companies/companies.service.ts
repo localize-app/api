@@ -4,8 +4,10 @@ import { Model } from 'mongoose';
 
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
+import { UpdateOrganizationLimitsDto } from './dto/update-organization-limits.dto';
 import { Company, CompanyDocument } from './entities/company.entity';
 import { User, UserDocument } from 'src/users/entities/user.entity';
+import { Project, ProjectDocument } from 'src/projects/entities/project.entity';
 import { CompanyWithUsers } from './interfaces/company-with-users.interface';
 import {
   DuplicateEntityException,
@@ -20,6 +22,7 @@ export class CompaniesService {
   constructor(
     @InjectModel(Company.name) private companyModel: Model<CompanyDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(Project.name) private projectModel: Model<ProjectDocument>,
   ) {}
 
   // Create a new company
@@ -354,6 +357,182 @@ export class CompaniesService {
         error.stack,
       );
       throw error;
+    }
+  }
+
+  // System Admin: Update organization limits and status
+  async updateOrganizationLimits(
+    id: string,
+    updateLimitsDto: UpdateOrganizationLimitsDto,
+    adminUserId: string,
+  ): Promise<CompanyWithUsers> {
+    try {
+      const updateData: any = { ...updateLimitsDto };
+
+      // If deactivating, set deactivation metadata
+      if (updateLimitsDto.isActive === false) {
+        updateData.deactivatedAt = new Date();
+        updateData.deactivatedBy = adminUserId;
+      } else if (updateLimitsDto.isActive === true) {
+        // If reactivating, clear deactivation metadata
+        updateData.deactivatedAt = undefined;
+        updateData.deactivatedBy = undefined;
+        updateData.activatedAt = new Date();
+      }
+
+      const updatedCompany = await this.companyModel
+        .findByIdAndUpdate(id, updateData, {
+          new: true,
+          runValidators: true,
+        })
+        .exec();
+
+      if (!updatedCompany) {
+        throw new EntityNotFoundException('Organization', id);
+      }
+
+      // Get users belonging to this organization
+      const users = await this.userModel.find({ company: id }).exec();
+
+      const companyObj = updatedCompany.toObject();
+
+      this.logger.log(
+        `Organization limits updated for ${companyObj.name}: maxProjects=${updateData.maxProjects || companyObj.maxProjects}, maxTeamMembers=${updateData.maxTeamMembers || companyObj.maxTeamMembers}, isActive=${companyObj.isActive}`,
+      );
+
+      return {
+        ...companyObj,
+        users: users,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to update organization limits for ID ${id}: ${error.message}`,
+        error.stack,
+      );
+
+      if (error instanceof EntityNotFoundException) {
+        throw error;
+      }
+
+      // Handle invalid MongoDB ID format
+      if (error.name === 'CastError' && error.kind === 'ObjectId') {
+        throw new EntityNotFoundException('Organization', id);
+      }
+
+      throw error;
+    }
+  }
+
+  // System Admin: Get all organizations with their limits and usage
+  async getAllOrganizationsWithLimits(): Promise<any[]> {
+    try {
+      const companies = await this.companyModel.find().exec();
+
+      const companiesWithStats = await Promise.all(
+        companies.map(async (company) => {
+          // Get user count for this company
+          const userCount = await this.userModel
+            .countDocuments({ company: company._id })
+            .exec();
+
+          // Get project count directly from projects collection
+          const projectCount = await this.projectModel
+            .countDocuments({ company: company._id })
+            .exec();
+
+          return {
+            ...company.toObject(),
+            currentProjects: projectCount,
+            currentTeamMembers: userCount,
+            isProjectLimitReached: projectCount >= company.maxProjects,
+            isTeamMemberLimitReached: userCount >= company.maxTeamMembers,
+          };
+        }),
+      );
+
+      return companiesWithStats;
+    } catch (error) {
+      this.logger.error(
+        `Failed to get organizations with limits: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  // System Admin: Deactivate organization
+  async deactivateOrganization(
+    id: string,
+    adminUserId: string,
+  ): Promise<CompanyWithUsers> {
+    return this.updateOrganizationLimits(
+      id,
+      { isActive: false },
+      adminUserId,
+    );
+  }
+
+  // System Admin: Activate organization
+  async activateOrganization(
+    id: string,
+    adminUserId: string,
+  ): Promise<CompanyWithUsers> {
+    return this.updateOrganizationLimits(
+      id,
+      { isActive: true },
+      adminUserId,
+    );
+  }
+
+  // Check if organization can add more projects
+  async canAddProject(companyId: string): Promise<boolean> {
+    try {
+      const company = await this.companyModel
+        .findById(companyId)
+        .populate('projects')
+        .exec();
+
+      if (!company) {
+        return false;
+      }
+
+      if (!company.isActive) {
+        return false;
+      }
+
+      const currentProjects = company.projects?.length || 0;
+      return currentProjects < company.maxProjects;
+    } catch (error) {
+      this.logger.error(
+        `Failed to check project limit for company ${companyId}: ${error.message}`,
+      );
+      return false;
+    }
+  }
+
+  // Check if organization can add more team members
+  async canAddTeamMember(companyId: string): Promise<boolean> {
+    try {
+      const company = await this.companyModel.findById(companyId).exec();
+
+      if (!company) {
+        return false;
+      }
+
+      if (!company.isActive) {
+        return false;
+      }
+
+      const currentMembers = await this.userModel
+        .countDocuments({ company: companyId })
+        .exec();
+
+      return currentMembers < company.maxTeamMembers;
+    } catch (error) {
+      this.logger.error(
+        `Failed to check team member limit for company ${companyId}: ${error.message}`,
+      );
+      return false;
     }
   }
 }

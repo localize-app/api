@@ -18,8 +18,11 @@ export class RolePermissionsService {
     role: string,
     permission: string,
   ): boolean {
+    console.log(`🔍 hasPermission check: role=${role}, permission=${permission}, userPermissions:`, userPermissions);
+    
     // System admins always have all permissions
-    if (role === 'admin') {
+    if (role === 'SYSTEM_ADMIN') {
+      console.log(`✅ System admin access granted`);
       return true;
     }
 
@@ -28,12 +31,16 @@ export class RolePermissionsService {
       userPermissions &&
       userPermissions[permission as keyof UserPermissions] !== undefined
     ) {
-      return userPermissions[permission as keyof UserPermissions] as boolean;
+      const hasCustomPermission = userPermissions[permission as keyof UserPermissions] as boolean;
+      console.log(`🎛️ Using custom permission: ${hasCustomPermission}`);
+      return hasCustomPermission;
     }
 
     // Fall back to role-based permissions
     const rolePermissions = this.getPermissionsForRole(role);
-    return !!rolePermissions[permission];
+    const hasRolePermission = !!rolePermissions[permission];
+    console.log(`🏷️ Using role-based permission: ${hasRolePermission}, role permissions:`, rolePermissions);
+    return hasRolePermission;
   }
 
   /**
@@ -71,42 +78,6 @@ export class RolePermissionsService {
    */
   getPermissionsForRole(role: string): Record<string, boolean> {
     switch (role) {
-      case Role.COMPANY_OWNER:
-        return {
-          // User management
-          canManageUsers: true,
-          canInviteUsers: true,
-          canRemoveUsers: true,
-
-          // Project management
-          canCreateProjects: true,
-          canManageProjects: true,
-          canArchiveProjects: true,
-
-          // Content management
-          canCreatePhrases: true,
-          canEditPhrases: true,
-          canDeletePhrases: true,
-          canTranslate: true,
-          canApproveTranslations: true,
-
-          // Locale management
-          canManageLocales: true,
-
-          // Glossary management
-          canManageGlossary: true,
-
-          // Integration management
-          canManageIntegrations: true,
-
-          // Settings management
-          canManageSettings: true,
-
-          // Reports and analytics
-          canViewReports: true,
-          canExportData: true,
-        };
-
       case Role.SYSTEM_ADMIN:
         return {
           // User management
@@ -145,20 +116,20 @@ export class RolePermissionsService {
 
       case Role.COMPANY_OWNER:
         return {
-          // User management
-          canManageUsers: false,
+          // User management - FULL control within their company
+          canManageUsers: true,
           canInviteUsers: true,
-          canRemoveUsers: false,
+          canRemoveUsers: true,
 
-          // Project management
-          canCreateProjects: false,
+          // Project management - FULL control within their company
+          canCreateProjects: true,
           canManageProjects: true,
-          canArchiveProjects: false,
+          canArchiveProjects: true,
 
           // Content management
           canCreatePhrases: true,
           canEditPhrases: true,
-          canDeletePhrases: false,
+          canDeletePhrases: true,
           canTranslate: true,
           canApproveTranslations: true,
 
@@ -168,11 +139,11 @@ export class RolePermissionsService {
           // Glossary management
           canManageGlossary: true,
 
-          // Integration management
-          canManageIntegrations: false,
+          // Integration management - Company-level integrations
+          canManageIntegrations: true,
 
-          // Settings management
-          canManageSettings: false,
+          // Settings management - Company settings
+          canManageSettings: true,
 
           // Reports and analytics
           canViewReports: true,

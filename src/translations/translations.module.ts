@@ -14,7 +14,6 @@ import { PhrasesService } from 'src/phrases/phrases.service';
 import { Project, ProjectSchema } from 'src/projects/entities/project.entity';
 import { PhrasesModule } from 'src/phrases/phrases.module';
 import { ProjectsModule } from 'src/projects/projects.module';
-import { ProjectsService } from 'src/projects/projects.service';
 import { CacheModule } from 'src/cache/cache.module'; // Import CacheModule
 import { LabelsModule } from 'src/labels/labels.module';
 
@@ -38,7 +37,6 @@ import { LabelsModule } from 'src/labels/labels.module';
     LibreTranslateProvider,
     MyMemoryProvider,
     GoogleTranslateProvider,
-    ProjectsService,
   ],
   exports: [TranslationsService, TranslationFactoryService],
 })

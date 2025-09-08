@@ -8,6 +8,7 @@ import {
   Delete,
   Put,
   Patch,
+  Req,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -49,8 +50,19 @@ export class UsersController {
   @RequirePermission('canManageUsers')
   @ApiOperation({ summary: 'Get all users' })
   @ApiResponse({ status: 200, description: 'Returns an array of users' })
-  findAll() {
-    return this.usersService.findAll();
+  findAll(@Req() req: any) {
+    // Company owners can only see users from their own company
+    let filters = {};
+    if (req.user.role === Role.COMPANY_OWNER && req.user.company) {
+      // Extract the company ID from the company object if it's an object
+      const companyId = typeof req.user.company === 'object' 
+        ? req.user.company.id || req.user.company._id 
+        : req.user.company;
+      filters = { company: companyId };
+    }
+    // System admins see all users (no filtering)
+      
+    return this.usersService.findAll(filters);
   }
 
   @Get(':id')
