@@ -7,11 +7,90 @@ import {
   IsEnum,
   IsUrl,
   ValidateNested,
+  IsNumber,
+  Min,
+  Max,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { ProjectType } from '../entities/project.entity';
 import { LocaleCode } from 'src/common/enums/locale-code.enum';
+import {
+  DateFormatOption,
+  TimeFormatOption,
+  CurrencySymbolPosition,
+  DecimalSeparator,
+  ThousandsSeparator,
+} from '../entities/project-settings.entity';
+
+class DateOptionsDto {
+  @ApiProperty({
+    description: 'Date format',
+    enum: DateFormatOption,
+    required: false,
+  })
+  @IsEnum(DateFormatOption)
+  @IsOptional()
+  format?: DateFormatOption;
+
+  @ApiProperty({
+    description: 'Time format (12h or 24h)',
+    enum: TimeFormatOption,
+    required: false,
+  })
+  @IsEnum(TimeFormatOption)
+  @IsOptional()
+  timeFormat?: TimeFormatOption;
+
+  @ApiProperty({
+    description: 'Timezone (e.g., "America/New_York", "Europe/London")',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  timezone?: string;
+}
+
+class CurrencyOptionsDto {
+  @ApiProperty({
+    description: 'Currency symbol position',
+    enum: CurrencySymbolPosition,
+    required: false,
+  })
+  @IsEnum(CurrencySymbolPosition)
+  @IsOptional()
+  symbolPosition?: CurrencySymbolPosition;
+
+  @ApiProperty({
+    description: 'Decimal separator',
+    enum: DecimalSeparator,
+    required: false,
+  })
+  @IsEnum(DecimalSeparator)
+  @IsOptional()
+  decimalSeparator?: DecimalSeparator;
+
+  @ApiProperty({
+    description: 'Thousands separator',
+    enum: ThousandsSeparator,
+    required: false,
+  })
+  @IsEnum(ThousandsSeparator)
+  @IsOptional()
+  thousandsSeparator?: ThousandsSeparator;
+
+  @ApiProperty({
+    description: 'Number of decimal places',
+    minimum: 0,
+    maximum: 4,
+    required: false,
+  })
+  @IsNumber()
+  @Min(0)
+  @Max(4)
+  @IsOptional()
+  decimalPlaces?: number;
+}
 
 class UpdateProjectSettingsDto {
   @ApiProperty({
@@ -94,12 +173,32 @@ class UpdateProjectSettingsDto {
   dateHandling?: boolean;
 
   @ApiProperty({
+    description: 'Date formatting options (only applies if dateHandling is true)',
+    type: () => DateOptionsDto,
+    required: false,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => DateOptionsDto)
+  dateOptions?: DateOptionsDto;
+
+  @ApiProperty({
     description: 'Ignore currency formatting in translations?',
     required: false,
   })
   @IsBoolean()
   @IsOptional()
   ignoreCurrency?: boolean;
+
+  @ApiProperty({
+    description: 'Currency formatting options (only applies if ignoreCurrency is false)',
+    type: () => CurrencyOptionsDto,
+    required: false,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CurrencyOptionsDto)
+  currencyOptions?: CurrencyOptionsDto;
 }
 
 export class UpdateProjectDto {
