@@ -89,7 +89,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiResponse({ status: 200, description: 'Return the current user profile' })
   @Get('profile')
-  getProfile(@Req() req: Request) {
-    return req.user;
+  async getProfile(@Req() req: Request) {
+    return this.authService.getUserProfile(req.user);
   }
 }

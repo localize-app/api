@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { StyleGuidesService } from './style-guides.service';
 import { CreateStyleGuideDto } from './dto/create-style-guide.dto';
 import { UpdateStyleGuideDto } from './dto/update-style-guide.dto';
@@ -23,7 +31,10 @@ export class StyleGuidesController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateStyleGuideDto: UpdateStyleGuideDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateStyleGuideDto: UpdateStyleGuideDto,
+  ) {
     return this.styleGuidesService.update(+id, updateStyleGuideDto);
   }
 

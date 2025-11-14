@@ -1,8 +1,8 @@
 // src/auth/role-permission.service.ts
 import { Injectable } from '@nestjs/common';
-import { Role } from 'src/common/enums/role.enum';
-import { CompanyPermissionSettings } from 'src/companies/entities/company-permission-settings.entity';
-import { UserPermissions } from 'src/users/entities/user-permissions.entity';
+import { Role } from '../common/enums/role.enum';
+import { CompanyPermissionSettings } from '../companies/entities/company-permission-settings.entity';
+import { UserPermissions } from '../users/entities/user-permissions.entity';
 
 /**
  * Central service for managing role-based permissions and custom permissions
@@ -18,8 +18,11 @@ export class RolePermissionsService {
     role: string,
     permission: string,
   ): boolean {
-    console.log(`🔍 hasPermission check: role=${role}, permission=${permission}, userPermissions:`, userPermissions);
-    
+    console.log(
+      `🔍 hasPermission check: role=${role}, permission=${permission}, userPermissions:`,
+      userPermissions,
+    );
+
     // System admins always have all permissions
     if (role === 'SYSTEM_ADMIN') {
       console.log(`✅ System admin access granted`);
@@ -31,7 +34,9 @@ export class RolePermissionsService {
       userPermissions &&
       userPermissions[permission as keyof UserPermissions] !== undefined
     ) {
-      const hasCustomPermission = userPermissions[permission as keyof UserPermissions] as boolean;
+      const hasCustomPermission = userPermissions[
+        permission as keyof UserPermissions
+      ] as boolean;
       console.log(`🎛️ Using custom permission: ${hasCustomPermission}`);
       return hasCustomPermission;
     }
@@ -39,7 +44,10 @@ export class RolePermissionsService {
     // Fall back to role-based permissions
     const rolePermissions = this.getPermissionsForRole(role);
     const hasRolePermission = !!rolePermissions[permission];
-    console.log(`🏷️ Using role-based permission: ${hasRolePermission}, role permissions:`, rolePermissions);
+    console.log(
+      `🏷️ Using role-based permission: ${hasRolePermission}, role permissions:`,
+      rolePermissions,
+    );
     return hasRolePermission;
   }
 
@@ -109,6 +117,11 @@ export class RolePermissionsService {
           // Settings management
           canManageSettings: false,
 
+          // Order management
+          canCreateOrders: true,
+          canViewOrders: true,
+          canManageOrders: true,
+
           // Reports and analytics
           canViewReports: true,
           canExportData: true,
@@ -145,6 +158,11 @@ export class RolePermissionsService {
           // Settings management - Company settings
           canManageSettings: true,
 
+          // Order management - Full control within their company
+          canCreateOrders: true,
+          canViewOrders: true,
+          canManageOrders: true,
+
           // Reports and analytics
           canViewReports: true,
           canExportData: true,
@@ -158,7 +176,7 @@ export class RolePermissionsService {
           canRemoveUsers: false,
 
           // Project management
-          canCreateProjects: false,
+          canCreateProjects: true,
           canManageProjects: false,
           canArchiveProjects: false,
 
@@ -181,8 +199,13 @@ export class RolePermissionsService {
           // Settings management
           canManageSettings: false,
 
-          // Reports and analytics
-          canViewReports: false,
+          // Order management
+          canCreateOrders: false,
+          canViewOrders: true, // Allow translators to view their assigned orders
+          canManageOrders: false,
+
+          // Reports and analytics - Give basic dashboard access
+          canViewReports: true,
           canExportData: false,
         };
 
@@ -217,6 +240,11 @@ export class RolePermissionsService {
 
           // Settings management
           canManageSettings: false,
+
+          // Order management
+          canCreateOrders: false,
+          canViewOrders: false,
+          canManageOrders: false,
 
           // Reports and analytics
           canViewReports: true,

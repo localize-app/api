@@ -29,4 +29,14 @@ export class UpdateOrganizationLimitsDto {
   @IsNumber()
   @Min(1)
   maxTeamMembers?: number;
+
+  @ApiProperty({
+    description: 'Maximum number of languages per project',
+    example: 5,
+    minimum: 1,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  maxLanguages?: number;
 }

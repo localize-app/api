@@ -2,9 +2,9 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { HydratedDocument } from 'mongoose';
 
-import { Role } from 'src/common/enums/role.enum';
-import { Company } from 'src/companies/entities/company.entity';
-import { BaseEntity, baseSchemaOptions } from 'src/common/entities/base.entity';
+import { Role } from '../../common/enums/role.enum';
+import { Company } from '../../companies/entities/company.entity';
+import { BaseEntity, baseSchemaOptions } from '../../common/entities/base.entity';
 import {
   UserPermissions,
   UserPermissionsSchema,
@@ -57,6 +57,13 @@ export class User extends BaseEntity {
   // SECURITY: Token version for invalidating all user sessions
   @Prop({ default: 0 })
   tokenVersion: number;
+
+  // Password reset functionality
+  @Prop()
+  passwordResetToken?: string;
+
+  @Prop()
+  passwordResetExpires?: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

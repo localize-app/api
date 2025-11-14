@@ -8,8 +8,9 @@ import { Response } from 'express';
 import { RegisterDto } from './dto/register.dto';
 import { UsersService } from '../users/users.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
-import { Role } from 'src/common/enums/role.enum';
+import { Role } from '../common/enums/role.enum';
 import { TokenBlacklistService } from './services/token-blacklist.service';
+import { RolePermissionsService } from './role-permission.service';
 
 @Injectable()
 export class AuthService {
@@ -17,6 +18,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private tokenBlacklistService: TokenBlacklistService,
+    private rolePermissionsService: RolePermissionsService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -117,7 +119,9 @@ export class AuthService {
 
       const user = await this.usersService.findByEmail(payload.email);
 
-      if (!user || user._id.toString() !== payload.sub) {
+      // Handle both _id and id fields from user object
+      const userId = user?._id || user?.id;
+      if (!user || !userId || userId.toString() !== payload.sub) {
         throw new UnauthorizedException('Invalid refresh token');
       }
 
@@ -132,7 +136,7 @@ export class AuthService {
       await this.tokenBlacklistService.blacklistToken(
         refreshToken,
         'refresh',
-        (user._id || user.id).toString(),
+        userId.toString(),
       );
 
       // Generate new token pair
@@ -140,7 +144,7 @@ export class AuthService {
       const newRefreshJti = uuidv4();
 
       const newPayload = {
-        sub: (user._id || user.id).toString(),
+        sub: userId.toString(),
         email: user.email,
         role: user.role,
         jti: newJti,
@@ -148,7 +152,7 @@ export class AuthService {
       };
 
       const newRefreshPayload = {
-        sub: (user._id || user.id).toString(),
+        sub: userId.toString(),
         email: user.email,
         jti: newRefreshJti,
         tokenVersion: user.tokenVersion,
@@ -167,7 +171,7 @@ export class AuthService {
 
       return {
         user: {
-          id: (user._id || user.id).toString(),
+          id: userId.toString(),
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
@@ -181,9 +185,40 @@ export class AuthService {
         },
       };
     } catch (error) {
-      // Clear cookies on any refresh error
-      this.clearTokenCookies(response);
-      throw new UnauthorizedException('Invalid refresh token');
+      // Check if it's a JWT-related error (expired, invalid, malformed)
+      // JWT errors have specific names: 'TokenExpiredError' or 'JsonWebTokenError'
+      const errorName = error?.name || error?.constructor?.name;
+      const isJwtError =
+        errorName === 'TokenExpiredError' ||
+        errorName === 'JsonWebTokenError' ||
+        error?.message?.includes('jwt expired') ||
+        error?.message?.includes('invalid token');
+
+      // Check if it's an authentication-related UnauthorizedException
+      const isAuthError = error instanceof UnauthorizedException;
+
+      // Only clear cookies for JWT errors or auth errors (expired/invalid tokens)
+      // Don't clear cookies on unexpected errors (database failures, etc.)
+      if (isJwtError || isAuthError) {
+        this.clearTokenCookies(response);
+
+        // Provide specific error messages
+        if (errorName === 'TokenExpiredError' || error?.message?.includes('jwt expired')) {
+          throw new UnauthorizedException('Refresh token expired - please login again');
+        } else if (errorName === 'JsonWebTokenError' || error?.message?.includes('invalid token')) {
+          throw new UnauthorizedException('Invalid refresh token');
+        } else if (error instanceof UnauthorizedException) {
+          // Re-throw auth errors with their original message
+          throw error;
+        } else {
+          throw new UnauthorizedException('Invalid refresh token');
+        }
+      } else {
+        // For unexpected errors (database, network, etc.), log and re-throw
+        // Don't clear cookies as this might be a temporary issue
+        console.error('Unexpected error during token refresh:', error);
+        throw new UnauthorizedException('Unable to refresh token - please try again');
+      }
     }
   }
 
@@ -281,6 +316,34 @@ export class AuthService {
 
     // If the user entity doesn't have toObject method, use spread operator directly
     const { passwordHash, ...result } = newUser as any;
+    return result;
+  }
+
+  async getUserProfile(user: any) {
+    console.log('🔍 getUserProfile called with user:', {
+      id: user._id || user.id,
+      email: user.email,
+      role: user.role,
+      hasStoredPermissions: !!user.permissions,
+    });
+
+    // Get permissions for the user's role (ignore custom permissions for now)
+    const rolePermissions = this.rolePermissionsService.getPermissionsForRole(
+      user.role,
+    );
+
+    console.log('🔑 Role-based permissions:', rolePermissions);
+
+    // Return user data with calculated permissions
+    const { passwordHash, ...userWithoutPassword } = user;
+    const result = {
+      ...userWithoutPassword,
+      permissions: rolePermissions,
+      isSystemAdmin: user.role === 'SYSTEM_ADMIN',
+    };
+
+    console.log('✅ getUserProfile returning user with permissions');
+
     return result;
   }
 }

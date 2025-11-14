@@ -16,6 +16,11 @@ import {
 import { createHash } from 'crypto';
 import { CacheService } from '../cache/cache.service';
 import { TranslationProvider } from './interfaces/translation-provider.interface';
+import {
+  translateWithVariablePreservation,
+  validateVariables,
+  extractVariables,
+} from '../phrases/utils/variable-preservation.util';
 
 @Injectable()
 export class TranslationsService {
@@ -66,19 +71,54 @@ export class TranslationsService {
         );
       }
 
-      const result = await provider.translateText({
-        text,
-        sourceLanguage,
-        targetLanguage,
-      });
+      // Check if text contains variables
+      const hasVariables = extractVariables(text).length > 0;
+
+      let translatedText: string;
+      let providerName: string | undefined;
+
+      if (hasVariables) {
+        // Use variable preservation for texts with variables
+        translatedText = await translateWithVariablePreservation(
+          text,
+          async (sanitizedText) => {
+            const result = await provider.translateText({
+              text: sanitizedText,
+              sourceLanguage,
+              targetLanguage,
+            });
+            providerName = result.provider;
+            return result.translatedText;
+          },
+        );
+
+        // Validate that variables were preserved
+        const validation = validateVariables(text, translatedText);
+        if (!validation.isValid) {
+          this.logger.warn(
+            `Variable validation warnings for translation: ${validation.warnings.join('; ')}`,
+          );
+        }
+      } else {
+        // No variables, translate normally
+        const result = await provider.translateText({
+          text,
+          sourceLanguage,
+          targetLanguage,
+        });
+        translatedText = result.translatedText;
+        providerName = result.provider;
+      }
+
+      const finalProviderName = providerName || provider.getName();
 
       this.logger.log(
-        `Translated text using ${result.provider}: "${text}" -> "${result.translatedText}"`,
+        `Translated text using ${finalProviderName}: "${text}" -> "${translatedText}"`,
       );
 
       return {
-        translatedText: result.translatedText,
-        provider: result.provider,
+        translatedText,
+        provider: finalProviderName,
       };
     } catch (error) {
       this.logger.error(`Translation failed: ${error.message}`, error.stack);
@@ -152,12 +192,43 @@ export class TranslationsService {
             continue;
           }
 
-          // Translate the text
-          const translationResult = await provider.translateText({
-            text: phrase.sourceText,
-            sourceLanguage: dto.sourceLanguage || 'en-US',
-            targetLanguage: dto.targetLanguage,
-          });
+          // Translate the text with variable preservation
+          const hasVariables = extractVariables(phrase.sourceText).length > 0;
+          let translatedText: string;
+
+          if (hasVariables) {
+            // Use variable preservation for phrases with variables
+            translatedText = await translateWithVariablePreservation(
+              phrase.sourceText,
+              async (sanitizedText) => {
+                const result = await provider.translateText({
+                  text: sanitizedText,
+                  sourceLanguage: dto.sourceLanguage || 'en-US',
+                  targetLanguage: dto.targetLanguage,
+                });
+                return result.translatedText;
+              },
+            );
+
+            // Validate that variables were preserved
+            const validation = validateVariables(
+              phrase.sourceText,
+              translatedText,
+            );
+            if (!validation.isValid) {
+              this.logger.warn(
+                `Variable validation warnings for phrase ${phrase._id}: ${validation.warnings.join('; ')}`,
+              );
+            }
+          } else {
+            // No variables, translate normally
+            const translationResult = await provider.translateText({
+              text: phrase.sourceText,
+              sourceLanguage: dto.sourceLanguage || 'en-US',
+              targetLanguage: dto.targetLanguage,
+            });
+            translatedText = translationResult.translatedText;
+          }
 
           // Save the translation to the phrase
           if (!phrase.translations) {
@@ -165,7 +236,7 @@ export class TranslationsService {
           }
 
           phrase.translations.set(dto.targetLanguage, {
-            text: translationResult.translatedText,
+            text: translatedText,
             status: dto.autoApprove
               ? TranslationStatus.APPROVED
               : TranslationStatus.PENDING,
@@ -179,7 +250,7 @@ export class TranslationsService {
           results.push({
             phraseId: phrase._id.toString(),
             sourceText: phrase.sourceText,
-            translatedText: translationResult.translatedText,
+            translatedText: translatedText,
             status: 'success',
           });
           successCount++;
@@ -265,18 +336,42 @@ export class TranslationsService {
         throw new Error('No translation provider available');
       }
 
-      // Process texts in batches if needed
+      // Process texts in batches if needed, with variable preservation
       const translations: string[] = [];
       const batchSize = 10;
 
       for (let i = 0; i < dto.texts.length; i += batchSize) {
         const batch = dto.texts.slice(i, i + batchSize);
-        const results = await provider.translateBatch({
-          texts: batch,
-          sourceLanguage: dto.sourceLanguage || 'en',
-          targetLanguage: dto.targetLanguage,
-        });
-        translations.push(...results.translatedTexts);
+
+        // Check if any text in batch has variables
+        const batchHasVariables = batch.some(
+          (text) => extractVariables(text).length > 0,
+        );
+
+        if (batchHasVariables) {
+          // Process with variable preservation
+          const preservedTranslations = await Promise.all(
+            batch.map((text) =>
+              translateWithVariablePreservation(text, async (sanitizedText) => {
+                const singleResult = await provider.translateText({
+                  text: sanitizedText,
+                  sourceLanguage: dto.sourceLanguage || 'en',
+                  targetLanguage: dto.targetLanguage,
+                });
+                return singleResult.translatedText;
+              }),
+            ),
+          );
+          translations.push(...preservedTranslations);
+        } else {
+          // No variables, use batch translation for efficiency
+          const results = await provider.translateBatch({
+            texts: batch,
+            sourceLanguage: dto.sourceLanguage || 'en',
+            targetLanguage: dto.targetLanguage,
+          });
+          translations.push(...results.translatedTexts);
+        }
       }
 
       const response: InstantTranslateResponseDto = {

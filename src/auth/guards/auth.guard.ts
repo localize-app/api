@@ -56,9 +56,11 @@ export class AuthorizationGuard implements CanActivate {
         user.role,
         requiredPermission,
       );
-      
-      console.log(`🔒 Permission check result: ${hasPermission} for ${requiredPermission}`);
-      
+
+      console.log(
+        `🔒 Permission check result: ${hasPermission} for ${requiredPermission}`,
+      );
+
       return hasPermission;
     }
 

@@ -14,7 +14,10 @@ import { LocalStrategy } from './strategies/local.strategy';
 import { RolePermissionsService } from './role-permission.service';
 import { AuthorizationGuard } from './guards/auth.guard';
 import { TokenBlacklistService } from './services/token-blacklist.service';
-import { BlacklistedToken, BlacklistedTokenSchema } from './entities/blacklisted-token.entity';
+import {
+  BlacklistedToken,
+  BlacklistedTokenSchema,
+} from './entities/blacklisted-token.entity';
 
 @Module({
   imports: [
@@ -31,15 +34,18 @@ import { BlacklistedToken, BlacklistedTokenSchema } from './entities/blacklisted
     MongooseModule.forFeature([
       { name: BlacklistedToken.name, schema: BlacklistedTokenSchema },
     ]),
-    ThrottlerModule.forRoot([{
-      name: 'short',
-      ttl: 60000, // 1 minute
-      limit: 10, // 10 requests per minute per IP
-    }, {
-      name: 'medium', 
-      ttl: 600000, // 10 minutes
-      limit: 50, // 50 requests per 10 minutes per IP
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        name: 'short',
+        ttl: 60000, // 1 minute
+        limit: 10, // 10 requests per minute per IP
+      },
+      {
+        name: 'medium',
+        ttl: 600000, // 10 minutes
+        limit: 50, // 50 requests per 10 minutes per IP
+      },
+    ]),
     ConfigModule,
   ],
   controllers: [AuthController],
@@ -51,6 +57,11 @@ import { BlacklistedToken, BlacklistedTokenSchema } from './entities/blacklisted
     AuthorizationGuard,
     TokenBlacklistService,
   ],
-  exports: [AuthService, RolePermissionsService, AuthorizationGuard, TokenBlacklistService],
+  exports: [
+    AuthService,
+    RolePermissionsService,
+    AuthorizationGuard,
+    TokenBlacklistService,
+  ],
 })
 export class AuthModule {}

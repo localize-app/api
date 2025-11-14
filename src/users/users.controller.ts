@@ -55,13 +55,17 @@ export class UsersController {
     let filters = {};
     if (req.user.role === Role.COMPANY_OWNER && req.user.company) {
       // Extract the company ID from the company object if it's an object
-      const companyId = typeof req.user.company === 'object' 
-        ? req.user.company.id || req.user.company._id 
-        : req.user.company;
+      const companyId =
+        typeof req.user.company === 'object'
+          ? req.user.company.id || req.user.company._id
+          : req.user.company;
       filters = { company: companyId };
+    } else if (req.user.role === Role.SYSTEM_ADMIN && req.query.company) {
+      // System admins can filter by company using query parameter
+      filters = { company: req.query.company };
     }
-    // System admins see all users (no filtering)
-      
+    // System admins without company filter see all users
+
     return this.usersService.findAll(filters);
   }
 
@@ -182,5 +186,23 @@ export class UsersController {
       role,
       permissions: this.rolePermissionsService.createDefaultPermissions(role),
     };
+  }
+
+  @Post('password-reset/request')
+  @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_OWNER)
+  @RequirePermission('canManageUsers')
+  @ApiOperation({ summary: 'Send password reset email to user' })
+  @ApiResponse({ status: 200, description: 'Password reset email sent' })
+  async requestPasswordReset(@Body() body: { email: string }) {
+    return this.usersService.requestPasswordReset(body.email);
+  }
+
+  @Post('password-reset/confirm')
+  @ApiOperation({ summary: 'Reset password with token' })
+  @ApiResponse({ status: 200, description: 'Password reset successfully' })
+  async confirmPasswordReset(
+    @Body() body: { token: string; newPassword: string },
+  ) {
+    return this.usersService.confirmPasswordReset(body.token, body.newPassword);
   }
 }

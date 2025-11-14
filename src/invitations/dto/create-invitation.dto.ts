@@ -8,7 +8,10 @@ export class CreateInvitationDto {
   @IsNotEmpty()
   email: string;
 
-  @ApiProperty({ description: 'Role to assign to the invited user', enum: Role })
+  @ApiProperty({
+    description: 'Role to assign to the invited user',
+    enum: Role,
+  })
   @IsEnum(Role)
   @IsNotEmpty()
   role: Role;

@@ -5,7 +5,7 @@ export type BlacklistedTokenDocument = BlacklistedToken & Document;
 
 @Schema({
   timestamps: true,
-  collection: 'blacklisted_tokens'
+  collection: 'blacklisted_tokens',
 })
 export class BlacklistedToken {
   @Prop({ required: true, unique: true })
@@ -24,7 +24,8 @@ export class BlacklistedToken {
   blacklistedAt: Date;
 }
 
-export const BlacklistedTokenSchema = SchemaFactory.createForClass(BlacklistedToken);
+export const BlacklistedTokenSchema =
+  SchemaFactory.createForClass(BlacklistedToken);
 
 // Create TTL index to automatically remove expired tokens
 BlacklistedTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });

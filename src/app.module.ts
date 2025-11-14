@@ -26,6 +26,7 @@ import { StyleGuidesModule } from './style-guides/style-guides.module';
 import { LabelsModule } from './labels/labels.module';
 import { HealthModule } from './health/health.module';
 import { InvitationsModule } from './invitations/invitations.module';
+import { OrdersModule } from './orders/orders.module';
 import { MiddlewareConsumer, NestModule } from '@nestjs/common';
 
 @Module({
@@ -73,6 +74,7 @@ import { MiddlewareConsumer, NestModule } from '@nestjs/common';
     LabelsModule,
     HealthModule,
     InvitationsModule,
+    OrdersModule,
   ],
   controllers: [],
   providers: [

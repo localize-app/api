@@ -465,11 +465,7 @@ export class CompaniesService {
     id: string,
     adminUserId: string,
   ): Promise<CompanyWithUsers> {
-    return this.updateOrganizationLimits(
-      id,
-      { isActive: false },
-      adminUserId,
-    );
+    return this.updateOrganizationLimits(id, { isActive: false }, adminUserId);
   }
 
   // System Admin: Activate organization
@@ -477,11 +473,7 @@ export class CompaniesService {
     id: string,
     adminUserId: string,
   ): Promise<CompanyWithUsers> {
-    return this.updateOrganizationLimits(
-      id,
-      { isActive: true },
-      adminUserId,
-    );
+    return this.updateOrganizationLimits(id, { isActive: true }, adminUserId);
   }
 
   // Check if organization can add more projects

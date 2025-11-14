@@ -30,6 +30,8 @@ import {
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../common/enums/role.enum';
 import { RequirePermission } from '../auth/decorators/permission.decorator';
+import { Public } from '../auth/decorators/public.decorator';
+import { NotFoundException } from '@nestjs/common';
 
 @ApiTags('Projects')
 @ApiBearerAuth() // Add bearer auth to Swagger docs
@@ -127,7 +129,6 @@ export class ProjectsController {
       // System admins see all projects (no filtering)
 
       const list = await this.projectsService.findAll(query);
-      console.log('Projects list:', list);
 
       res
         .status(HttpStatus.OK)
@@ -140,6 +141,55 @@ export class ProjectsController {
       );
       throw new InternalServerErrorException(
         `Failed to fetch projects: ${error.message}`,
+      );
+    }
+  }
+
+  @Public()
+  @Get('key/:projectKey')
+  @ApiOperation({
+    summary: 'Get project info by project key (public)',
+    description:
+      'Public endpoint to get project information including supported locales',
+  })
+  @ApiParam({ name: 'projectKey', description: 'Project key' })
+  @ApiResponse({
+    status: 200,
+    description: 'Project information retrieved successfully.',
+    schema: {
+      type: 'object',
+      properties: {
+        sourceLocale: { type: 'string', example: 'en-US' },
+        supportedLocales: {
+          type: 'array',
+          items: { type: 'string' },
+          example: ['fr-CA', 'es-ES'],
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 404, description: 'Project not found' })
+  async findByKey(@Param('projectKey') projectKey: string) {
+    try {
+      const project = await this.projectsService.findByKey(projectKey);
+      if (!project) {
+        throw new NotFoundException('Project not found');
+      }
+      return {
+        sourceLocale: project.sourceLocale,
+        supportedLocales: project.supportedLocales || [],
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(
+        `Failed to fetch project with key ${projectKey}: ${error.message}`,
+        error.stack,
+      );
+      throw new HttpException(
+        `Failed to fetch project: ${error.message}`,
+        error.status || HttpStatus.NOT_FOUND,
       );
     }
   }

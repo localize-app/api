@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, MinLength, IsEmail, IsOptional } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  MinLength,
+  IsEmail,
+  IsOptional,
+} from 'class-validator';
 
 export class AcceptInvitationDto {
   @ApiProperty({ description: 'Email address (read-only)', required: false })
@@ -17,13 +23,19 @@ export class AcceptInvitationDto {
   @IsNotEmpty()
   lastName: string;
 
-  @ApiProperty({ description: 'Password for the new user account', minLength: 6 })
+  @ApiProperty({
+    description: 'Password for the new user account',
+    minLength: 6,
+  })
   @IsString()
   @MinLength(6)
   @IsNotEmpty()
   password: string;
 
-  @ApiProperty({ description: 'Confirm password (frontend validation)', required: false })
+  @ApiProperty({
+    description: 'Confirm password (frontend validation)',
+    required: false,
+  })
   @IsString()
   @IsOptional()
   confirmPassword?: string;

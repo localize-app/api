@@ -33,7 +33,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(req: Request, payload: any) {
     // Check if payload and sub exist before trying to find the user
     if (!payload || !payload.sub) {
-      console.error('❌ Invalid token payload - missing sub field. Payload:', payload);
+      console.error(
+        '❌ Invalid token payload - missing sub field. Payload:',
+        payload,
+      );
       throw new UnauthorizedException('Invalid token payload');
     }
 

@@ -1,5 +1,5 @@
 // src/dashboard/dashboard.controller.ts
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, UseGuards, Request } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RequirePermission } from '../auth/decorators/permission.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -14,14 +14,14 @@ export class DashboardController {
   @Get('stats')
   @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_OWNER, Role.MEMBER)
   @RequirePermission('canViewDashboard')
-  async getDashboardStats() {
-    return this.dashboardService.getStats();
+  async getDashboardStats(@Request() req: any) {
+    return this.dashboardService.getStats(req.user);
   }
 
   @Get('analytics')
   @Roles(Role.SYSTEM_ADMIN, Role.COMPANY_OWNER, Role.MEMBER)
   @RequirePermission('canViewAnalytics')
-  async getAnalytics() {
-    return this.dashboardService.getAnalytics();
+  async getAnalytics(@Request() req: any) {
+    return this.dashboardService.getAnalytics(req.user);
   }
 }

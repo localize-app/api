@@ -224,15 +224,47 @@ export class PhrasesController {
   @Get('search/:projectId')
   @ApiOperation({ summary: 'Advanced search phrases with filters' })
   @ApiParam({ name: 'projectId', description: 'Project ID' })
-  @ApiQuery({ name: 'text', required: false, description: 'Search in sourceText, key, context' })
-  @ApiQuery({ name: 'key', required: false, description: 'Search in phrase key' })
-  @ApiQuery({ name: 'context', required: false, description: 'Search in context' })
-  @ApiQuery({ name: 'tags', required: false, description: 'Filter by tags (comma-separated)' })
-  @ApiQuery({ name: 'translationStatus', required: false, description: 'Translation status' })
+  @ApiQuery({
+    name: 'text',
+    required: false,
+    description: 'Search in sourceText, key, context',
+  })
+  @ApiQuery({
+    name: 'key',
+    required: false,
+    description: 'Search in phrase key',
+  })
+  @ApiQuery({
+    name: 'context',
+    required: false,
+    description: 'Search in context',
+  })
+  @ApiQuery({
+    name: 'tags',
+    required: false,
+    description: 'Filter by tags (comma-separated)',
+  })
+  @ApiQuery({
+    name: 'translationStatus',
+    required: false,
+    description: 'Translation status',
+  })
   @ApiQuery({ name: 'locale', required: false, description: 'Locale code' })
-  @ApiQuery({ name: 'hasTranslation', required: false, description: 'Has any translation (true/false)' })
-  @ApiQuery({ name: 'dateFrom', required: false, description: 'Date range from (ISO date)' })
-  @ApiQuery({ name: 'dateTo', required: false, description: 'Date range to (ISO date)' })
+  @ApiQuery({
+    name: 'hasTranslation',
+    required: false,
+    description: 'Has any translation (true/false)',
+  })
+  @ApiQuery({
+    name: 'dateFrom',
+    required: false,
+    description: 'Date range from (ISO date)',
+  })
+  @ApiQuery({
+    name: 'dateTo',
+    required: false,
+    description: 'Date range to (ISO date)',
+  })
   @ApiQuery({ name: 'page', required: false, description: 'Page number' })
   @ApiQuery({ name: 'limit', required: false, description: 'Items per page' })
   async searchPhrases(
@@ -257,10 +289,13 @@ export class PhrasesController {
       translationStatus,
       locale,
       hasTranslation: hasTranslation ? hasTranslation === 'true' : undefined,
-      dateRange: (dateFrom || dateTo) ? {
-        from: dateFrom ? new Date(dateFrom) : undefined,
-        to: dateTo ? new Date(dateTo) : undefined,
-      } : undefined,
+      dateRange:
+        dateFrom || dateTo
+          ? {
+              from: dateFrom ? new Date(dateFrom) : undefined,
+              to: dateTo ? new Date(dateTo) : undefined,
+            }
+          : undefined,
       page: page ? parseInt(page) : 1,
       limit: limit ? parseInt(limit) : 20,
     };

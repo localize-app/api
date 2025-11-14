@@ -106,21 +106,13 @@ export class LabelsService {
 
   async incrementUsage(labelId: string): Promise<Label | null> {
     return this.labelModel
-      .findByIdAndUpdate(
-        labelId,
-        { $inc: { usageCount: 1 } },
-        { new: true }
-      )
+      .findByIdAndUpdate(labelId, { $inc: { usageCount: 1 } }, { new: true })
       .exec();
   }
 
   async decrementUsage(labelId: string): Promise<Label | null> {
     return this.labelModel
-      .findByIdAndUpdate(
-        labelId,
-        { $inc: { usageCount: -1 } },
-        { new: true }
-      )
+      .findByIdAndUpdate(labelId, { $inc: { usageCount: -1 } }, { new: true })
       .exec();
   }
 }

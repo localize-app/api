@@ -75,6 +75,10 @@ export class Project extends BaseEntity {
 
 export const ProjectSchema = SchemaFactory.createForClass(Project);
 
+// Set transform to include virtuals in JSON
+ProjectSchema.set('toJSON', { virtuals: true });
+ProjectSchema.set('toObject', { virtuals: true });
+
 // Add virtual to get phrase count
 ProjectSchema.virtual('phraseCount', {
   ref: 'Phrase',

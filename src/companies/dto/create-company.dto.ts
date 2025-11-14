@@ -32,19 +32,31 @@ export class CreateCompanyDto {
   @IsOptional()
   projects?: string[]; // Optional array of project IDs
 
-  @ApiProperty({ description: 'Maximum number of projects allowed', required: false, default: 10 })
+  @ApiProperty({
+    description: 'Maximum number of projects allowed',
+    required: false,
+    default: 10,
+  })
   @IsNumber()
   @Min(1)
   @IsOptional()
   maxProjects?: number; // Maximum projects limit
 
-  @ApiProperty({ description: 'Maximum number of team members allowed', required: false, default: 50 })
+  @ApiProperty({
+    description: 'Maximum number of team members allowed',
+    required: false,
+    default: 50,
+  })
   @IsNumber()
   @Min(1)
   @IsOptional()
   maxTeamMembers?: number; // Maximum team members limit
 
-  @ApiProperty({ description: 'Whether the organization is active', required: false, default: true })
+  @ApiProperty({
+    description: 'Whether the organization is active',
+    required: false,
+    default: true,
+  })
   @IsBoolean()
   @IsOptional()
   isActive?: boolean; // Organization active status

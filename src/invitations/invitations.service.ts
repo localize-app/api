@@ -1,10 +1,18 @@
-import { Injectable, BadRequestException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as crypto from 'crypto';
 import * as nodemailer from 'nodemailer';
 import * as bcrypt from 'bcrypt';
-import { Invitation, InvitationDocument, InvitationStatus } from './entities/invitation.entity';
+import {
+  Invitation,
+  InvitationDocument,
+  InvitationStatus,
+} from './entities/invitation.entity';
 import { CreateInvitationDto } from './dto/create-invitation.dto';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
 import { User, UserDocument } from '../users/entities/user.entity';
@@ -15,7 +23,8 @@ export class InvitationsService {
   private transporter: nodemailer.Transporter;
 
   constructor(
-    @InjectModel(Invitation.name) private invitationModel: Model<InvitationDocument>,
+    @InjectModel(Invitation.name)
+    private invitationModel: Model<InvitationDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(Company.name) private companyModel: Model<CompanyDocument>,
   ) {
@@ -29,7 +38,10 @@ export class InvitationsService {
     });
   }
 
-  async createInvitation(createInvitationDto: CreateInvitationDto, invitedById: string): Promise<Invitation> {
+  async createInvitation(
+    createInvitationDto: CreateInvitationDto,
+    invitedById: string,
+  ): Promise<Invitation> {
     const { email, role, company } = createInvitationDto;
 
     // Check if user already exists
@@ -42,11 +54,13 @@ export class InvitationsService {
     const existingInvitation = await this.invitationModel.findOne({
       email,
       status: InvitationStatus.PENDING,
-      expiresAt: { $gt: new Date() }
+      expiresAt: { $gt: new Date() },
     });
 
     if (existingInvitation) {
-      throw new BadRequestException('Pending invitation already exists for this email');
+      throw new BadRequestException(
+        'Pending invitation already exists for this email',
+      );
     }
 
     // Verify company exists
@@ -57,7 +71,7 @@ export class InvitationsService {
 
     // Generate secure token
     const token = crypto.randomBytes(32).toString('hex');
-    
+
     // Set expiration to 7 days from now
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
@@ -81,11 +95,13 @@ export class InvitationsService {
   }
 
   async getInvitationByToken(token: string): Promise<Invitation> {
-    const invitation = await this.invitationModel.findOne({ 
-      token,
-      status: InvitationStatus.PENDING,
-      expiresAt: { $gt: new Date() }
-    }).populate(['company', 'invitedBy']);
+    const invitation = await this.invitationModel
+      .findOne({
+        token,
+        status: InvitationStatus.PENDING,
+        expiresAt: { $gt: new Date() },
+      })
+      .populate(['company', 'invitedBy']);
 
     if (!invitation) {
       throw new NotFoundException('Invitation not found or expired');
@@ -94,12 +110,17 @@ export class InvitationsService {
     return invitation;
   }
 
-  async acceptInvitation(token: string, acceptInvitationDto: AcceptInvitationDto): Promise<User> {
+  async acceptInvitation(
+    token: string,
+    acceptInvitationDto: AcceptInvitationDto,
+  ): Promise<User> {
     const invitation = await this.getInvitationByToken(token);
     const { firstName, lastName, password } = acceptInvitationDto;
 
     // Check if user already exists (double-check)
-    const existingUser = await this.userModel.findOne({ email: invitation.email });
+    const existingUser = await this.userModel.findOne({
+      email: invitation.email,
+    });
     if (existingUser) {
       throw new BadRequestException('User already exists');
     }
@@ -123,7 +144,7 @@ export class InvitationsService {
     await this.invitationModel.findByIdAndUpdate((invitation as any)._id, {
       status: InvitationStatus.ACCEPTED,
       acceptedBy: savedUser._id,
-      acceptedAt: new Date()
+      acceptedAt: new Date(),
     });
 
     // Populate user data
@@ -143,7 +164,10 @@ export class InvitationsService {
   }
 
   async getInvitations(filters: any = {}): Promise<Invitation[]> {
-    return this.invitationModel.find(filters).populate(['company', 'invitedBy', 'acceptedBy']).sort({ createdAt: -1 });
+    return this.invitationModel
+      .find(filters)
+      .populate(['company', 'invitedBy', 'acceptedBy'])
+      .sort({ createdAt: -1 });
   }
 
   private async sendInvitationEmail(invitation: any): Promise<void> {
@@ -179,5 +203,49 @@ export class InvitationsService {
       console.error('Failed to send invitation email:', error);
       // Don't throw error - invitation is still created
     }
+  }
+
+  async resendInvitation(
+    invitationId: string,
+    _resendById: string,
+  ): Promise<Invitation> {
+    const invitation = await this.invitationModel
+      .findById(invitationId)
+      .populate(['company', 'invitedBy']);
+
+    if (!invitation) {
+      throw new NotFoundException('Invitation not found');
+    }
+
+    if (invitation.status !== InvitationStatus.PENDING) {
+      throw new BadRequestException('Can only resend pending invitations');
+    }
+
+    if (invitation.expiresAt < new Date()) {
+      throw new BadRequestException('Invitation has expired');
+    }
+
+    // Check if user already exists (they may have been created after invitation)
+    const existingUser = await this.userModel.findOne({
+      email: invitation.email,
+    });
+    if (existingUser) {
+      throw new BadRequestException('User with this email already exists');
+    }
+
+    // Generate new token and extend expiration
+    const newToken = crypto.randomBytes(32).toString('hex');
+    const newExpiresAt = new Date();
+    newExpiresAt.setDate(newExpiresAt.getDate() + 7);
+
+    invitation.token = newToken;
+    invitation.expiresAt = newExpiresAt;
+
+    const updatedInvitation = await invitation.save();
+
+    // Send invitation email with new token
+    await this.sendInvitationEmail(updatedInvitation);
+
+    return updatedInvitation;
   }
 }

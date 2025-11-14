@@ -1,4 +1,10 @@
-import { IsString, IsOptional, IsBoolean, IsEnum, IsHexColor } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsBoolean,
+  IsEnum,
+  IsHexColor,
+} from 'class-validator';
 
 export class CreateLabelDto {
   @IsString()
@@ -12,7 +18,15 @@ export class CreateLabelDto {
   @IsHexColor()
   color?: string;
 
-  @IsEnum(['functional', 'platform', 'priority', 'status', 'content-type', 'workflow', 'custom'])
+  @IsEnum([
+    'functional',
+    'platform',
+    'priority',
+    'status',
+    'content-type',
+    'workflow',
+    'custom',
+  ])
   category: string;
 
   @IsOptional()

@@ -27,6 +27,10 @@ import { Translation, TranslationStatus } from './entities/translation.entity';
 import { ExtractPhrasesDto } from './dto/extract-phrases.dto';
 import { LabelsService } from '../labels/labels.service';
 import { Label } from '../labels/entities/label.entity';
+import {
+  validateVariables,
+  extractVariables,
+} from './utils/variable-preservation.util';
 
 @Injectable()
 export class PhrasesService {
@@ -51,7 +55,9 @@ export class PhrasesService {
 
     try {
       // Get all available labels for the company
-      const availableLabels = await this.labelsService.findAll({ company: companyId });
+      const availableLabels = await this.labelsService.findAll({
+        company: companyId,
+      });
       const assignedLabelIds: string[] = [];
 
       // Smart labeling rules based on content analysis
@@ -67,67 +73,96 @@ export class PhrasesService {
         switch (label.category) {
           case 'functional':
             // Navigation labels
-            if (labelName.includes('navigation') || labelName.includes('menu')) {
-              shouldAssign = !!lowerText.match(/\b(home|about|contact|menu|nav|back|next|previous)\b/) ||
-                           lowerContext.includes('nav') ||
-                           url.includes('nav');
+            if (
+              labelName.includes('navigation') ||
+              labelName.includes('menu')
+            ) {
+              shouldAssign =
+                !!lowerText.match(
+                  /\b(home|about|contact|menu|nav|back|next|previous)\b/,
+                ) ||
+                lowerContext.includes('nav') ||
+                url.includes('nav');
             }
-            // Button labels  
+            // Button labels
             else if (labelName.includes('button')) {
-              shouldAssign = !!lowerText.match(/\b(click|submit|save|cancel|ok|yes|no|apply|confirm|delete|add|edit|update|create)\b/) ||
-                           lowerContext.includes('button');
+              shouldAssign =
+                !!lowerText.match(
+                  /\b(click|submit|save|cancel|ok|yes|no|apply|confirm|delete|add|edit|update|create)\b/,
+                ) || lowerContext.includes('button');
             }
             // Form labels
             else if (labelName.includes('form')) {
-              shouldAssign = !!lowerText.match(/\b(name|email|password|username|login|register|sign|enter|input)\b/) ||
-                           lowerContext.includes('form') ||
-                           lowerContext.includes('input');
+              shouldAssign =
+                !!lowerText.match(
+                  /\b(name|email|password|username|login|register|sign|enter|input)\b/,
+                ) ||
+                lowerContext.includes('form') ||
+                lowerContext.includes('input');
             }
             // Error labels
             else if (labelName.includes('error')) {
-              shouldAssign = !!lowerText.match(/\b(error|failed|invalid|required|missing|wrong|incorrect)\b/) ||
-                           lowerContext.includes('error');
+              shouldAssign =
+                !!lowerText.match(
+                  /\b(error|failed|invalid|required|missing|wrong|incorrect)\b/,
+                ) || lowerContext.includes('error');
             }
             break;
 
           case 'platform':
             // Mobile labels
             if (labelName.includes('mobile')) {
-              shouldAssign = url.includes('mobile') || 
-                           lowerContext.includes('mobile') ||
-                           lowerText.includes('tap');
+              shouldAssign =
+                url.includes('mobile') ||
+                lowerContext.includes('mobile') ||
+                lowerText.includes('tap');
             }
             // Desktop labels
-            else if (labelName.includes('desktop') || labelName.includes('web')) {
-              shouldAssign = lowerText.includes('click') || 
-                           url.includes('desktop') ||
-                           lowerContext.includes('desktop');
+            else if (
+              labelName.includes('desktop') ||
+              labelName.includes('web')
+            ) {
+              shouldAssign =
+                lowerText.includes('click') ||
+                url.includes('desktop') ||
+                lowerContext.includes('desktop');
             }
             break;
 
           case 'priority':
             // High priority labels
             if (labelName.includes('high') || labelName.includes('critical')) {
-              shouldAssign = !!lowerText.match(/\b(urgent|important|critical|required|mandatory|error)\b/) ||
-                           lowerContext.includes('critical');
+              shouldAssign =
+                !!lowerText.match(
+                  /\b(urgent|important|critical|required|mandatory|error)\b/,
+                ) || lowerContext.includes('critical');
             }
-            // Low priority labels  
+            // Low priority labels
             else if (labelName.includes('low')) {
-              shouldAssign = !!lowerText.match(/\b(optional|tip|hint|suggestion)\b/) ||
-                           lowerContext.includes('optional');
+              shouldAssign =
+                !!lowerText.match(/\b(optional|tip|hint|suggestion)\b/) ||
+                lowerContext.includes('optional');
             }
             break;
 
           case 'content-type':
             // Marketing labels
             if (labelName.includes('marketing')) {
-              shouldAssign = !!lowerText.match(/\b(buy|purchase|sale|discount|offer|deal|free|premium|upgrade)\b/);
+              shouldAssign = !!lowerText.match(
+                /\b(buy|purchase|sale|discount|offer|deal|free|premium|upgrade)\b/,
+              );
             }
             // Help labels
-            else if (labelName.includes('help') || labelName.includes('support')) {
-              shouldAssign = !!lowerText.match(/\b(help|support|faq|guide|tutorial|how to|assistance)\b/) ||
-                           url.includes('help') ||
-                           url.includes('support');
+            else if (
+              labelName.includes('help') ||
+              labelName.includes('support')
+            ) {
+              shouldAssign =
+                !!lowerText.match(
+                  /\b(help|support|faq|guide|tutorial|how to|assistance)\b/,
+                ) ||
+                url.includes('help') ||
+                url.includes('support');
             }
             break;
         }
@@ -297,7 +332,12 @@ export class PhrasesService {
           $addFields: {
             translationsArray: { $objectToArray: '$translations' },
             hasAnyTranslation: {
-              $gt: [{ $size: { $objectToArray: { $ifNull: ['$translations', {}] } } }, 0],
+              $gt: [
+                {
+                  $size: { $objectToArray: { $ifNull: ['$translations', {}] } },
+                },
+                0,
+              ],
             },
           },
         });
@@ -672,7 +712,9 @@ export class PhrasesService {
     }
 
     if (context) {
-      pipeline.push({ $match: { context: { $regex: context, $options: 'i' } } });
+      pipeline.push({
+        $match: { context: { $regex: context, $options: 'i' } },
+      });
     }
 
     // Tag filtering
@@ -727,7 +769,14 @@ export class PhrasesService {
         phrases: [
           { $skip: skip },
           { $limit: limit },
-          { $lookup: { from: 'projects', localField: 'project', foreignField: '_id', as: 'project' } },
+          {
+            $lookup: {
+              from: 'projects',
+              localField: 'project',
+              foreignField: '_id',
+              as: 'project',
+            },
+          },
           { $unwind: '$project' },
           { $project: { translationsArray: 0 } },
         ],
@@ -957,26 +1006,38 @@ export class PhrasesService {
         const newLabels = updatePhraseDto.labels || [];
 
         // Convert to string arrays for comparison (in case they're ObjectIds)
-        const oldLabelIds = oldLabels.map((label: any) => typeof label === 'string' ? label : label.toString());
-        const newLabelIds = newLabels.map((label: any) => typeof label === 'string' ? label : label.toString());
+        const oldLabelIds = oldLabels.map((label: any) =>
+          typeof label === 'string' ? label : label.toString(),
+        );
+        const newLabelIds = newLabels.map((label: any) =>
+          typeof label === 'string' ? label : label.toString(),
+        );
 
         // Find labels that were removed (decrement usage)
-        const removedLabels = oldLabelIds.filter(labelId => !newLabelIds.includes(labelId));
+        const removedLabels = oldLabelIds.filter(
+          (labelId) => !newLabelIds.includes(labelId),
+        );
         for (const labelId of removedLabels) {
           try {
             await this.labelsService.decrementUsage(labelId);
           } catch (error) {
-            this.logger.warn(`Failed to decrement usage for label ${labelId}: ${error.message}`);
+            this.logger.warn(
+              `Failed to decrement usage for label ${labelId}: ${error.message}`,
+            );
           }
         }
 
         // Find labels that were added (increment usage)
-        const addedLabels = newLabelIds.filter(labelId => !oldLabelIds.includes(labelId));
+        const addedLabels = newLabelIds.filter(
+          (labelId) => !oldLabelIds.includes(labelId),
+        );
         for (const labelId of addedLabels) {
           try {
             await this.labelsService.incrementUsage(labelId);
           } catch (error) {
-            this.logger.warn(`Failed to increment usage for label ${labelId}: ${error.message}`);
+            this.logger.warn(
+              `Failed to increment usage for label ${labelId}: ${error.message}`,
+            );
           }
         }
       }
@@ -1030,6 +1091,21 @@ export class PhrasesService {
   ): Promise<Phrase | null> {
     try {
       const phrase = await this.findOne(id);
+
+      // Validate variables if source text contains them
+      const sourceHasVariables = extractVariables(phrase.sourceText).length > 0;
+      if (sourceHasVariables) {
+        const validation = validateVariables(
+          phrase.sourceText,
+          translationDto.text,
+        );
+        if (!validation.isValid) {
+          this.logger.warn(
+            `Variable validation failed for phrase ${id}, locale ${locale}: ${validation.warnings.join('; ')}`,
+          );
+          // Don't throw error, but log warning - allow user to proceed but they should fix it
+        }
+      }
 
       // Create a valid translation object
       const translation: Translation = {
@@ -2219,9 +2295,9 @@ export class PhrasesService {
             // Update usage count for assigned labels
             if (autoLabels.length > 0) {
               await Promise.all(
-                autoLabels.map(labelId => 
-                  this.labelsService.incrementUsage(labelId)
-                )
+                autoLabels.map((labelId) =>
+                  this.labelsService.incrementUsage(labelId),
+                ),
               );
             }
             return {

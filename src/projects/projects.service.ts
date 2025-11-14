@@ -1,5 +1,11 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import { Injectable, NotFoundException, BadRequestException, forwardRef, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  forwardRef,
+  Inject,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as crypto from 'crypto';
@@ -13,7 +19,8 @@ import { CompaniesService } from '../companies/companies.service';
 export class ProjectsService {
   constructor(
     @InjectModel(Project.name) private projectModel: Model<ProjectDocument>,
-    @Inject(forwardRef(() => CompaniesService)) private companiesService: CompaniesService,
+    @Inject(forwardRef(() => CompaniesService))
+    private companiesService: CompaniesService,
   ) {}
 
   async findByKey(key: string) {
@@ -23,9 +30,13 @@ export class ProjectsService {
   async create(createProjectDto: CreateProjectDto): Promise<Project> {
     // Check organization limits before creating project
     if (createProjectDto.company) {
-      const canAddProject = await this.companiesService.canAddProject(createProjectDto.company);
+      const canAddProject = await this.companiesService.canAddProject(
+        createProjectDto.company,
+      );
       if (!canAddProject) {
-        throw new BadRequestException('Organization has reached its project limit or is inactive');
+        throw new BadRequestException(
+          'Organization has reached its project limit or is inactive',
+        );
       }
     }
 
@@ -103,6 +114,30 @@ export class ProjectsService {
     id: string,
     updateProjectDto: UpdateProjectDto,
   ): Promise<Project> {
+    // Validate language limit if updating supportedLocales
+    if (updateProjectDto.supportedLocales !== undefined) {
+      const project = await this.findOne(id);
+      if (project && project.company) {
+        const companyId =
+          typeof project.company === 'object'
+            ? project.company._id || project.company.id
+            : project.company;
+        const company = await this.companiesService.findOne(companyId.toString());
+        
+        if (company && company.maxLanguages) {
+          const targetLocales = updateProjectDto.supportedLocales.filter(
+            (locale) => locale !== project.sourceLocale
+          );
+          
+          if (targetLocales.length > company.maxLanguages) {
+            throw new BadRequestException(
+              `Language limit exceeded. Maximum ${company.maxLanguages} target languages allowed per project. You are trying to add ${targetLocales.length} languages.`
+            );
+          }
+        }
+      }
+    }
+
     const updatedProject = await this.projectModel
       .findByIdAndUpdate(id, updateProjectDto, { new: true })
       .populate('company')

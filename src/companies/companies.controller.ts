@@ -82,14 +82,18 @@ export class CompaniesController {
     // Company owners can only access their own company details
     if ((req.user as any).role === Role.COMPANY_OWNER) {
       const userCompany = (req.user as any).company;
-      const userCompanyId = typeof userCompany === 'object' 
-        ? userCompany.id || userCompany._id 
-        : userCompany;
+      const userCompanyId =
+        typeof userCompany === 'object'
+          ? userCompany.id || userCompany._id
+          : userCompany;
       if (userCompanyId && userCompanyId.toString() !== id) {
-        throw new HttpException('Access denied: You can only view your own company details', HttpStatus.FORBIDDEN);
+        throw new HttpException(
+          'Access denied: You can only view your own company details',
+          HttpStatus.FORBIDDEN,
+        );
       }
     }
-    
+
     return this.companiesService.findOne(id);
   }
 
@@ -102,18 +106,26 @@ export class CompaniesController {
     description: 'Company successfully updated',
     type: CompanyWithUsersDto,
   })
-  update(@Param('id') id: string, @Body() updateCompanyDto: UpdateCompanyDto, @Req() req: Request) {
+  update(
+    @Param('id') id: string,
+    @Body() updateCompanyDto: UpdateCompanyDto,
+    @Req() req: Request,
+  ) {
     // Company owners can only update their own company
     if ((req.user as any).role === Role.COMPANY_OWNER) {
       const userCompany = (req.user as any).company;
-      const userCompanyId = typeof userCompany === 'object' 
-        ? userCompany.id || userCompany._id 
-        : userCompany;
+      const userCompanyId =
+        typeof userCompany === 'object'
+          ? userCompany.id || userCompany._id
+          : userCompany;
       if (userCompanyId && userCompanyId.toString() !== id) {
-        throw new HttpException('Access denied: You can only update your own company', HttpStatus.FORBIDDEN);
+        throw new HttpException(
+          'Access denied: You can only update your own company',
+          HttpStatus.FORBIDDEN,
+        );
       }
     }
-    
+
     return this.companiesService.update(id, updateCompanyDto);
   }
 
@@ -136,18 +148,26 @@ export class CompaniesController {
     description: 'User successfully added to company',
     type: CompanyWithUsersDto,
   })
-  addUser(@Param('id') id: string, @Param('userId') userId: string, @Req() req: Request) {
+  addUser(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @Req() req: Request,
+  ) {
     // Company owners can only add users to their own company
     if ((req.user as any).role === Role.COMPANY_OWNER) {
       const userCompany = (req.user as any).company;
-      const userCompanyId = typeof userCompany === 'object' 
-        ? userCompany.id || userCompany._id 
-        : userCompany;
+      const userCompanyId =
+        typeof userCompany === 'object'
+          ? userCompany.id || userCompany._id
+          : userCompany;
       if (userCompanyId && userCompanyId.toString() !== id) {
-        throw new HttpException('Access denied: You can only add users to your own company', HttpStatus.FORBIDDEN);
+        throw new HttpException(
+          'Access denied: You can only add users to your own company',
+          HttpStatus.FORBIDDEN,
+        );
       }
     }
-    
+
     return this.companiesService.addUser(id, userId);
   }
 
@@ -161,18 +181,26 @@ export class CompaniesController {
     description: 'User successfully removed from company',
     type: CompanyWithUsersDto,
   })
-  removeUser(@Param('id') id: string, @Param('userId') userId: string, @Req() req: Request) {
+  removeUser(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @Req() req: Request,
+  ) {
     // Company owners can only remove users from their own company
     if ((req.user as any).role === Role.COMPANY_OWNER) {
       const userCompany = (req.user as any).company;
-      const userCompanyId = typeof userCompany === 'object' 
-        ? userCompany.id || userCompany._id 
-        : userCompany;
+      const userCompanyId =
+        typeof userCompany === 'object'
+          ? userCompany.id || userCompany._id
+          : userCompany;
       if (userCompanyId && userCompanyId.toString() !== id) {
-        throw new HttpException('Access denied: You can only remove users from your own company', HttpStatus.FORBIDDEN);
+        throw new HttpException(
+          'Access denied: You can only remove users from your own company',
+          HttpStatus.FORBIDDEN,
+        );
       }
     }
-    
+
     return this.companiesService.removeUser(id, userId);
   }
 
@@ -180,17 +208,24 @@ export class CompaniesController {
 
   @Get('admin/organizations')
   @Roles(Role.SYSTEM_ADMIN)
-  @ApiOperation({ summary: 'Get all organizations with limits and usage stats (System Admin)' })
+  @ApiOperation({
+    summary: 'Get all organizations with limits and usage stats (System Admin)',
+  })
   @ApiResponse({
     status: 200,
-    description: 'Returns all organizations with their limits and current usage',
+    description:
+      'Returns all organizations with their limits and current usage',
   })
   async getOrganizationsWithLimits(@Res({ passthrough: true }) res: Response) {
     try {
-      const organizations = await this.companiesService.getAllOrganizationsWithLimits();
+      const organizations =
+        await this.companiesService.getAllOrganizationsWithLimits();
       res
         .status(HttpStatus.OK)
-        .header('Content-Range', `organizations 0-${organizations?.length}/${organizations?.length}`);
+        .header(
+          'Content-Range',
+          `organizations 0-${organizations?.length}/${organizations?.length}`,
+        );
       return organizations;
     } catch (error) {
       console.log(error);
@@ -200,7 +235,9 @@ export class CompaniesController {
 
   @Patch(':id/limits')
   @Roles(Role.SYSTEM_ADMIN)
-  @ApiOperation({ summary: 'Update organization limits and status (System Admin)' })
+  @ApiOperation({
+    summary: 'Update organization limits and status (System Admin)',
+  })
   @ApiParam({ name: 'id', description: 'Organization ID' })
   @ApiResponse({
     status: 200,
@@ -213,7 +250,11 @@ export class CompaniesController {
     @Req() req: Request,
   ) {
     const adminUserId = (req.user as any)._id;
-    return this.companiesService.updateOrganizationLimits(id, updateLimitsDto, adminUserId);
+    return this.companiesService.updateOrganizationLimits(
+      id,
+      updateLimitsDto,
+      adminUserId,
+    );
   }
 
   @Post(':id/deactivate')
@@ -256,17 +297,21 @@ export class CompaniesController {
     // Company owners can only check limits for their own company
     if ((req.user as any).role === Role.COMPANY_OWNER) {
       const userCompany = (req.user as any).company;
-      const userCompanyId = typeof userCompany === 'object' 
-        ? userCompany.id || userCompany._id 
-        : userCompany;
+      const userCompanyId =
+        typeof userCompany === 'object'
+          ? userCompany.id || userCompany._id
+          : userCompany;
       if (userCompanyId && userCompanyId.toString() !== id) {
-        throw new HttpException('Access denied: You can only check limits for your own company', HttpStatus.FORBIDDEN);
+        throw new HttpException(
+          'Access denied: You can only check limits for your own company',
+          HttpStatus.FORBIDDEN,
+        );
       }
     }
-    
+
     const canAddProject = await this.companiesService.canAddProject(id);
     const canAddTeamMember = await this.companiesService.canAddTeamMember(id);
-    
+
     return {
       canAddProject,
       canAddTeamMember,

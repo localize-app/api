@@ -2,8 +2,11 @@ import * as mongoose from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 
-import { Project } from 'src/projects/entities/project.entity';
-import { BaseEntity, baseSchemaOptions } from 'src/common/entities/base.entity';
+import { Project } from '../../projects/entities/project.entity';
+import {
+  BaseEntity,
+  baseSchemaOptions,
+} from '../../common/entities/base.entity';
 import {
   CompanyPermissionSettings,
   CompanyPermissionSettingsSchema,
@@ -37,6 +40,9 @@ export class Company extends BaseEntity {
 
   @Prop({ default: 50 })
   maxTeamMembers: number;
+
+  @Prop({ default: 5 })
+  maxLanguages: number; // Maximum languages per project
 
   @Prop({ default: Date.now })
   activatedAt: Date;

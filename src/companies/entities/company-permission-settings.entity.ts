@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import {
   UserPermissions,
   UserPermissionsSchema,
-} from 'src/users/entities/user-permissions.entity';
+} from '../../users/entities/user-permissions.entity';
 
 @Schema({ _id: false })
 export class CompanyPermissionSettings {

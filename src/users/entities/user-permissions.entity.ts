@@ -55,6 +55,16 @@ export class UserPermissions {
   @Prop({ type: Boolean, default: false })
   canManageSettings: boolean;
 
+  // Order management
+  @Prop({ type: Boolean, default: false })
+  canCreateOrders: boolean;
+
+  @Prop({ type: Boolean, default: false })
+  canViewOrders: boolean;
+
+  @Prop({ type: Boolean, default: false })
+  canManageOrders: boolean;
+
   // Reports and analytics
   @Prop({ type: Boolean, default: false })
   canViewReports: boolean;

@@ -14,7 +14,7 @@ async function bootstrap() {
 
   // Security middleware
   app.use(helmet());
-  
+
   // CRITICAL: Cookie parser middleware for httpOnly cookies
   app.use(cookieParser());
 
@@ -33,8 +33,9 @@ async function bootstrap() {
     ? corsOrigin.split(',').map((origin) => origin.trim())
     : [
         'http://localhost:3001',
-        'http://localhost:5173', 
+        'http://localhost:5173',
         'http://localhost:8080',
+        'http://localhost:8081',
         'http://localhost:4173', // Vite preview
         'http://localhost:3000', // If frontend is on 3000
       ]; // Default dev origins
@@ -47,6 +48,7 @@ async function bootstrap() {
       'Accept',
       'Authorization',
       'X-Requested-With',
+      'x-project-key',
     ],
     credentials: true, // Required for httpOnly cookies
     preflightContinue: false,
